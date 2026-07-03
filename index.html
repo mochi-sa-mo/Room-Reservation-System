@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>部室予約システム - トップ</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --primary-hover: #357abd;
+            --bg-color: #f5f7fa;
+            --border-color: #ccc;
+            --cancel-req-color: #9e9e9e;
+        }
+        
+        body.modal-open {
+            overflow: hidden;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+        }
+        
+        /* 告知エリア */
+        .announcements {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .announcement-box {
+            flex: 1;
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .announcement-box h3 {
+            margin-top: 0;
+            color: #d0021b;
+            font-size: 1.1em;
+        }
+        .clickable-announcement {
+            cursor: pointer;
+            padding: 4px 0;
+            transition: color 0.2s;
+        }
+        .clickable-announcement:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+
+        /* 週切り替えコントローラー */
+        .week-controller {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            min-height: 40px;
+        }
+        .week-label {
+            font-size: 1.2em;
+            font-weight: bold;
+            min-width: 100px;
+            text-align: center;
+        }
+
+        /* 時間割グリッド */
+        .schedule-container {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 60px repeat(7, minmax(95px, 1fr));
+            gap: 1px;
+            background-color: var(--border-color);
+            border: 1px solid var(--border-color);
+        }
+        .cell {
+            background-color: #fff;
+            padding: 6px;
+            min-height: 55px;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+        .header-cell, .period-cell {
+            background-color: #eee;
+            font-weight: bold;
+            text-align: center;
+            padding: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85em;
+        }
+        .band-tag {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.8em;
+            text-align: center;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .band-tag:hover {
+            opacity: 0.8;
+        }
+        .band-tag.cancel-requested {
+            background-color: var(--cancel-req-color);
+            background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
+            background-size: 10px 10px;
+        }
+
+        /* 詳細表示用モーダル */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 350px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            box-sizing: border-box;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 5px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 1;
+        }
+        .detail-item {
+            margin-bottom: 12px;
+            font-size: 0.9em;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 2px;
+        }
+        .detail-value {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 8px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .modal-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 15px;
+            position: sticky;
+            bottom: 0;
+            background: #fff;
+            padding-top: 5px;
+        }
+
+        /* ボタン共通 */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            text-align: center;
+        }
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-nav { background-color: #e0e0e0; color: #333; }
+        .btn-nav:hover { background-color: #d0d0d0; }
+        .btn-warning { background-color: #f5a623; }
+        .btn-warning:hover { background-color: #d48a17; }
+        .btn-danger { background-color: #d0021b; }
+        .btn-danger:hover { background-color: #a00215; }
+        
+        @media (max-width: 768px) {
+            .announcements {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>部室予約システム</h1>
+        <div>
+            <span>現在のロール: <strong id="current-role">ユーザ</strong></span>
+            <button class="btn" onclick="location.href='yoyaku.html'" style="margin-left: 10px;">予約する</button>
+            <button class="btn btn-danger" id="btn-logout" style="margin-left: 10px;">ログアウト</button>
+        </div>
+    </header>
+
+    <div class="announcements">
+        <div class="announcement-box">
+            <h3>📢 直近のイベント</h3>
+            <ul id="event-list"></ul>
+        </div>
+        <div class="announcement-box">
+            <h3>⚠️ 直近の締め切り</h3>
+            <ul id="deadline-list"></ul>
+        </div>
+    </div>
+
+    <div class="week-controller">
+        <button class="btn btn-nav" id="btn-prev">← 前の週</button>
+        <span class="week-label" id="week-title">今週</span>
+        <button class="btn btn-nav" id="btn-next">次の週 →</button>
+    </div>
+
+    <div class="schedule-container">
+        <div class="grid" id="schedule-grid"></div>
+    </div>
+
+    <div class="modal" id="detail-modal">
+        <div class="modal-content">
+            <h3 id="modal-title">詳細情報</h3>
+            <div id="modal-body"></div>
+            <div class="modal-footer">
+                <div id="modal-action-area" style="width: 100%; display: flex; flex-direction: column;"></div>
+                <button class="btn btn-nav" id="btn-close-modal">閉じる</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from "./firebase.js";
+        import { collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const days = ['日', '月', '火', '水', '木', '金', '土'];
+        const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
+        
+        // アプリケーションの内部状態集合
+        let currentWeekState = 0;
+        let dbReservations = [];
+        let dbAnnouncements = [];
+
+        // 初期化処理
+        window.onload = function() {
+            const role = localStorage.getItem('userRole');
+            if (role) {
+                document.getElementById('current-role').textContent = 
+                    role === 'admin' ? '調整者' : (role === 'log' ? '閲覧者' : 'ユーザ');
+            }
+            
+            // イベントリスナーの結合
+            document.getElementById('btn-logout').onclick = confirmLogout;
+            document.getElementById('btn-prev').onclick = () => changeWeek(-1);
+            document.getElementById('btn-next').onclick = () => changeWeek(1);
+            document.getElementById('btn-close-modal').onclick = closeModal;
+
+            updateWeekButtons(); 
+            startRealtimeSync(); // データベース同期の開始
+        };
+
+        function confirmLogout() {
+            if (confirm('ログアウトしますか？')) {
+                localStorage.removeItem('userRole');
+                window.location.href = 'login.html';
+            }
+        }
+
+        function updateWeekButtons() {
+            const prevBtn = document.getElementById('btn-prev');
+            const nextBtn = document.getElementById('btn-next');
+            if (currentWeekState === 0) {
+                prevBtn.style.display = 'none';
+                nextBtn.style.display = 'block';
+            } else if (currentWeekState === 1) {
+                prevBtn.style.display = 'block';
+                nextBtn.style.display = 'none';
+            }
+        }
+
+        function changeWeek(direction) {
+            const newState = currentWeekState + direction;
+            if (newState < 0 || newState > 1) return;
+            currentWeekState = newState;
+            document.getElementById('week-title').textContent = currentWeekState === 0 ? '今週' : '来週';
+            updateWeekButtons(); 
+            renderGrid();
+        }
+
+        // Firestoreとのリアルタイム同期論理
+        function startRealtimeSync() {
+            // 1. 予約データコレクションの購読
+            onSnapshot(collection(db, "reservations"), (snapshot) => {
+                dbReservations = [];
+                snapshot.forEach((doc) => {
+                    dbReservations.push({ id: doc.id, ...doc.data() });
+                });
+                renderGrid(); // データ更新時に時間割を再描画
+            });
+
+            // 2. 告知・締め切りコレクションの購読
+            onSnapshot(collection(db, "announcements"), (snapshot) => {
+                dbAnnouncements = [];
+                snapshot.forEach((doc) => {
+                    dbAnnouncements.push({ id: doc.id, ...doc.data() });
+                });
+                renderAnnouncements(); // データ更新時に告知エリアを再描画
+            });
+        }
+
+        // 告知エリアのレンダリング（有効期限によるフィルタリング）
+        function renderAnnouncements() {
+            const eventList = document.getElementById('event-list');
+            const deadlineList = document.getElementById('deadline-list');
+            eventList.innerHTML = '';
+            deadlineList.innerHTML = '';
+
+            const nowStr = new Date().toISOString(); // 現在の基準時刻文字列
+
+            dbAnnouncements.forEach(item => {
+                // 論理フィルタリング：非表示日時(expire)が現在時刻より未来のもののみを表示対象とする
+                if (item.expire && item.expire > nowStr) {
+                    const li = document.createElement('li');
+                    li.className = 'clickable-announcement';
+                    li.textContent = item.title;
+                    
+                    if (item.type === 'event') {
+                        li.onclick = () => openDetailModal("📢 イベント詳細", item, 'event');
+                        eventList.appendChild(li);
+                    } else if (item.type === 'deadline') {
+                        li.onclick = () => openDetailModal("⚠️ 締め切り詳細", item, 'deadline');
+                        deadlineList.appendChild(li);
+                    }
+                }
+            });
+        }
+
+        // 時間割グリッドのレンダリング
+        function renderGrid() {
+            const grid = document.getElementById('schedule-grid');
+            grid.innerHTML = '';
+
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'header-cell';
+            grid.appendChild(emptyCell);
+
+            days.forEach(day => {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'header-cell';
+                dayCell.textContent = day;
+                grid.appendChild(dayCell);
+            });
+
+            periods.forEach((period, pIndex) => {
+                const periodCell = document.createElement('div');
+                periodCell.className = 'period-cell';
+                periodCell.textContent = period;
+                grid.appendChild(periodCell);
+
+                days.forEach((day, dIndex) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    // 論理フィルタリング：選択週(week)かつ確定済み(confirmed)かつ削除希望(deleted)でないものを抽出
+                    // ※今後の論理削除拡張に対応するため「!r.deleted」を安全に考慮
+                    const cellReservations = dbReservations.filter(r => 
+                        r.week === currentWeekState && 
+                        r.day === dIndex && 
+                        r.period === pIndex && 
+                        r.confirmed === true &&
+                        r.deleted !== true
+                    );
+                    
+                    cellReservations.forEach(res => {
+                        const tag = document.createElement('div');
+                        tag.className = `band-tag ${res.cancelRequested ? 'cancel-requested' : ''}`;
+                        tag.textContent = res.bandName + (res.cancelRequested ? ' (取消申請中)' : '');
+                        tag.onclick = () => openDetailModal(`${res.bandName} の予約詳細`, res, 'reservation');
+                        cell.appendChild(tag);
+                    });
+
+                    grid.appendChild(cell);
+                });
+            });
+        }
+
+        // 動的モーダル表示
+        function openDetailModal(title, data, type) {
+            document.getElementById('modal-title').textContent = title;
+            const body = document.getElementById('modal-body');
+            const actionArea = document.getElementById('modal-action-area');
+            body.innerHTML = ''; 
+            actionArea.innerHTML = ''; 
+
+            let fields = [];
+            if (type === 'event') {
+                fields = [
+                    { label: '件名', value: data.title },
+                    { label: '日時', value: data.date },
+                    { label: '場所', value: data.location },
+                    { label: 'タイムスケジュール', value: data.schedule },
+                    { label: 'リンク', value: data.link, isLink: true },
+                    { label: '備考', value: data.notes }
+                ];
+            } else if (type === 'deadline') {
+                fields = [
+                    { label: '件名', value: data.title },
+                    { label: '日時', value: data.date },
+                    { label: '提出先', value: data.submissionTo },
+                    { label: 'リンク', value: data.link, isLink: true },
+                    { label: '備考', value: data.notes }
+                ];
+            } else if (type === 'reservation') {
+                fields = [
+                    { label: 'バンド名', value: data.bandName },
+                    { label: '備考', value: data.notes },
+                    { label: '状態', value: data.cancelRequested ? '調整者にキャンセル申請が出されています' : '確定済み' }
+                ];
+
+                // キャンセル申請ボタンの動的生成
+                if (!data.cancelRequested) {
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn btn-warning';
+                    cancelBtn.style.marginBottom = '10px';
+                    cancelBtn.textContent = 'この予約のキャンセル申請を行う';
+                    cancelBtn.onclick = () => requestCancel(data.id);
+                    actionArea.appendChild(cancelBtn);
+                } else {
+                    const statusText = document.createElement('div');
+                    statusText.style.color = '#c62828';
+                    statusText.style.fontWeight = 'bold';
+                    statusText.style.textAlign = 'center';
+                    statusText.style.marginBottom = '10px';
+                    statusText.textContent = '⚠️ 取消申請が送信されています';
+                    actionArea.appendChild(statusText);
+                }
+            }
+
+            fields.forEach(f => {
+                if (f.value && f.value.trim() !== '') {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'detail-item';
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'detail-label';
+                    labelDiv.textContent = f.label;
+                    const valueDiv = document.createElement('div');
+                    valueDiv.className = 'detail-value';
+
+                    if (f.isLink) {
+                        const a = document.createElement('a');
+                        a.href = f.value; a.target = '_blank'; a.textContent = f.value;
+                        valueDiv.appendChild(a);
+                    } else {
+                        valueDiv.textContent = f.value;
+                    }
+                    itemDiv.appendChild(labelDiv);
+                    itemDiv.appendChild(valueDiv);
+                    body.appendChild(itemDiv);
+                }
+            });
+
+            document.getElementById('detail-modal').style.display = 'flex';
+            document.body.classList.add('modal-open');
+        }
+
+        // Firestore上のキャンセル希望フラグ書き換え処理（論理更新）
+        async function requestCancel(docId) {
+            if (confirm('本当にこの予約のキャンセル申請を調整者に送信しますか？\n(データは即時削除されず、日曜日の一括調整時に管理者が削除を確定します)')) {
+                try {
+                    // 対象ドキュメントの cancelRequested フィールドを真値に更新
+                    const docRef = doc(db, "reservations", docId);
+                    await updateDoc(docRef, {
+                        cancelRequested: true
+                    });
+                    
+                    alert('キャンセル希望を調整者に送信しました。');
+                    closeModal();
+                } catch (error) {
+                    console.error("キャンセル申請エラー:", error);
+                    alert("通信に失敗しました。ネットワーク状態を確認してください。");
+                }
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('detail-modal').style.display = 'none';
+            document.body.classList.remove('modal-open');
+        }
+    </script>
+</body>
+</html>

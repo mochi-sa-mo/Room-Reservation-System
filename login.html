@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ログイン - 部室予約システム</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --primary-hover: #357abd;
+            --bg-color: #f5f7fa;
+            --border-color: #ccc;
+        }
+        
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* 画面全体を使って中央配置 */
+            color: #333;
+            box-sizing: border-box;
+            padding: 20px;
+        }
+        
+        .login-container {
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 360px; /* PCでの最大幅 */
+            box-sizing: border-box;
+            text-align: center;
+        }
+        
+        .login-container h1 {
+            margin-top: 0;
+            font-size: 1.6em;
+            margin-bottom: 25px;
+            color: var(--primary-color);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 0.9em;
+            color: #555;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px; /* スマホでのタップ領域確保のため少し厚めに */
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1em;
+            -webkit-appearance: none; /* iOS特有のインセットシャドウをリセット */
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+        }
+        
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1em;
+            transition: background-color 0.2s;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+        
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+        
+        .error-message {
+            color: #d0021b;
+            font-size: 0.85em;
+            margin-top: 15px;
+            display: none; /* 初期状態は非表示 */
+            background: #ffebee;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ffcdd2;
+        }
+
+        /* レスポンシブ対応（画面幅480px以下のスマートフォン環境向け設定） */
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px; /* スマホでは内側の余白を削ってフォーム幅を確保 */
+                box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* 影を浅くしてフラットに */
+            }
+            .login-container h1 {
+                font-size: 1.4em;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <h1>部室予約システム</h1>
+        
+        <div class="form-group">
+            <label for="user-id">ユーザーID</label>
+            <input type="text" id="user-id" placeholder="IDを入力" autocomplete="username">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">パスワード</label>
+            <input type="password" id="password" placeholder="パスワードを入力" autocomplete="current-password">
+        </div>
+        
+        <button class="btn" onclick="attemptLogin()">ログイン</button>
+        
+        <div class="error-message" id="error-msg">IDまたはパスワードが間違っています。</div>
+    </div>
+
+    <script>
+        function attemptLogin() {
+            const id = document.getElementById('user-id').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('error-msg');
+
+            // 認証の論理境界条件（固定ID・パスワードの照合）
+            if (id === 'yu-za' && pass === 'yu-za') {
+                errorMsg.style.display = 'none';
+                localStorage.setItem('userRole', 'user');
+                window.location.href = 'index.html';
+            } 
+            else if (id === 'admin' && pass === 'admin') {
+                errorMsg.style.display = 'none';
+                localStorage.setItem('userRole', 'admin');
+                window.location.href = 'admin.html';
+            }
+            else if (id === 'log' && pass === 'log') {
+                errorMsg.style.display = 'none';
+                localStorage.setItem('userRole', 'log');
+                window.location.href = 'log.html';
+            }
+            else {
+                // 照合失敗時のエラーハンドリング
+                errorMsg.style.display = 'block';
+            }
+        }
+
+        // キーボード入力時のアクセシビリティ（Enterキー連動）
+        document.getElementById('password').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                attemptLogin();
+            }
+        });
+        document.getElementById('user-id').addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('password').focus();
+            }
+        });
+    </script>
+</body>
+</html>
