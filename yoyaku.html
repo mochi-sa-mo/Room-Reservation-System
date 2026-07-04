@@ -399,7 +399,6 @@
 
             try {
                 // 非同期一括処理のためのプロミス配列を生成
-                // ユーザーは常に「来週分」の枠に対して申請を行うため week: 1 とする
                 const promises = selectedSlots.map(slot => {
                     return addDoc(collection(db, "reservations"), {
                         week: 1, 
@@ -407,15 +406,26 @@
                         period: slot.period,
                         bandName: bandName,
                         notes: notes,
-                        confirmed: false,       // 初期値は未確定（オレンジ）
-                        cancelRequested: false, // 初期値は申請なし
-                        deleted: false,         // 論理削除フラグの初期化
+                        confirmed: false,       
+                        cancelRequested: false, 
+                        deleted: false,         
                         createdAt: new Date().toISOString()
                     });
                 });
 
                 // すべてのスロットのインサート通信が完了するまで待機
                 await Promise.all(promises);
+
+                // ▼▼▼ ここに「ログ送信処理」を追加 ▼▼▼
+                await addDoc(collection(db, "logs"), {
+                    timestamp: new Date().toISOString(),
+                    category: "reservation",
+                    opType: "create",
+                    bandName: bandName,
+                    slot: selectedSlots.map(s => s.text).join(', '),
+                    detail: "一般ユーザーより新規予約希望が送信されました"
+                });
+                // ▲▲▲ 追加ここまで ▲▲▲
 
                 alert(`【送信完了】\n${bandName} の予約希望を ${selectedSlots.length} 件送信しました。\n日曜日の管理者調整の後に時間割が確定します。`);
                 
