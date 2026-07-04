@@ -47,7 +47,7 @@
             gap: 1px;
             background-color: var(--border-color);
             border: 1px solid var(--border-color);
-            min-width: max-content; /* スマホでの横スクロール対応 */
+            min-width: max-content;
         }
         .header-cell, .period-cell {
             background-color: #eee;
@@ -70,7 +70,6 @@
         }
         .cell:hover { background-color: #f0f0f0; }
         
-        /* 管理者ブロック枠 */
         .cell.admin-disabled {
             background-color: #ffebee;
             background-image: repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,0,0,0.1) 5px, rgba(255,0,0,0.1) 10px);
@@ -87,10 +86,9 @@
             text-overflow: ellipsis;
             box-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
-        /* 確定と未確定で色を分ける */
-        .band-tag.pending { background-color: #f5a623; } /* オレンジ：未確定 */
-        .band-tag.confirmed { background-color: #4caf50; } /* 緑：確定済み */
-        .band-tag.cancel-req { background-color: #d0021b; } /* 赤：キャンセル申請 */
+        .band-tag.pending { background-color: #f5a623; } 
+        .band-tag.confirmed { background-color: #4caf50; } 
+        .band-tag.cancel-req { background-color: #d0021b; } 
 
         .tools-section {
             flex: 1;
@@ -126,7 +124,6 @@
         .btn-danger { background-color: #d0021b; }
         .btn-danger:hover { background-color: #a00215; }
         .btn-success { background-color: #4caf50; }
-        .btn-warning { background-color: #f5a623; }
 
         /* モーダル */
         .modal {
@@ -138,6 +135,19 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.2); text-align: center;
         }
         .modal-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+
+        /* 備考の表示ボックス用スタイル */
+        .manage-notes-box {
+            font-size: 0.9em;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
 
         ul { padding-left: 20px; margin: 0; }
         li { margin-bottom: 8px; font-size: 0.9em; }
@@ -202,9 +212,11 @@
         <div class="modal-content">
             <h3 id="manage-title">予約の管理</h3>
             <div id="manage-desc" style="font-size: 0.9em; margin-bottom: 10px; color: #555;"></div>
+            
+            <div id="manage-notes" class="manage-notes-box"></div>
+            
             <div class="modal-actions">
                 <button class="btn btn-success" id="btn-approve">この予約を【確定】する</button>
-                <button class="btn btn-warning" id="btn-unapprove">確定を【取り消す】(保留に戻す)</button>
                 <button class="btn btn-danger" id="btn-delete">この予約を【却下/削除】する</button>
                 <button class="btn" onclick="closeModal()" style="background-color: #999;">キャンセル</button>
             </div>
@@ -212,7 +224,6 @@
     </div>
 
     <script type="module">
-        // ★未ログイン者を弾く処理
         const role = localStorage.getItem('userRole');
         if (role !== 'admin') {
             alert('管理者権限がありません。');
@@ -220,7 +231,7 @@
         }
 
         import { db } from "./firebase.js";
-        import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+        import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
@@ -243,7 +254,6 @@
         };
 
         function startRealtimeSync() {
-            // 次週(week:1)の予約を取得（論理削除されていないもの）
             onSnapshot(collection(db, "reservations"), (snapshot) => {
                 dbReservations = [];
                 snapshot.forEach(doc => {
@@ -255,7 +265,6 @@
                 renderGrid();
             });
 
-            // ブロック枠の取得
             onSnapshot(collection(db, "disabledSlots"), (snapshot) => {
                 dbDisabledSlots = [];
                 snapshot.forEach(doc => {
@@ -264,7 +273,6 @@
                 renderGrid();
             });
 
-            // 告知の取得
             onSnapshot(collection(db, "announcements"), (snapshot) => {
                 dbAnnouncements = [];
                 snapshot.forEach(doc => {
@@ -293,7 +301,6 @@
                     const blockData = dbDisabledSlots.find(s => s.day === dIndex && s.period === pIndex);
                     if (blockData) cell.classList.add('admin-disabled');
 
-                    // セルクリックでブロック枠のON/OFF
                     cell.onclick = () => toggleBlockSlot(dIndex, pIndex, blockData);
 
                     const resInCell = dbReservations.filter(r => r.day === dIndex && r.period === pIndex);
@@ -302,11 +309,7 @@
                         let statusClass = res.cancelRequested ? 'cancel-req' : (res.confirmed ? 'confirmed' : 'pending');
                         tag.className = `band-tag ${statusClass}`;
                         tag.textContent = res.bandName;
-                        
-                        // ★PC用ホバーで備考を表示する魔法の1行★
-                        tag.title = res.notes ? `【備考】\n${res.notes}` : '備考なし';
 
-                        // タグクリックで管理モーダルを開く（セルのクリック判定を止める）
                         tag.onclick = (e) => {
                             e.stopPropagation();
                             openManageModal(res);
@@ -326,7 +329,6 @@
             return div;
         }
 
-        // 管理者ブロック枠の切替
         async function toggleBlockSlot(day, period, existingBlock) {
             try {
                 if (existingBlock) {
@@ -340,7 +342,6 @@
             }
         }
 
-        // 予約管理モーダルの制御
         function openManageModal(res) {
             currentManageId = res.id;
             currentManageData = res;
@@ -348,9 +349,8 @@
             document.getElementById('manage-title').textContent = res.bandName;
             document.getElementById('manage-desc').textContent = `${days[res.day]}曜 ${periods[res.period]} の予約希望`;
             
-            // 状態に応じてボタンの表示を切り替え
-            document.getElementById('btn-approve').style.display = res.confirmed ? 'none' : 'block';
-            document.getElementById('btn-unapprove').style.display = res.confirmed ? 'block' : 'none';
+            // ★モーダル内に備考のテキストを表示
+            document.getElementById('manage-notes').textContent = res.notes ? `【備考】\n${res.notes}` : '備考なし';
 
             document.getElementById('manage-modal').style.display = 'flex';
         }
@@ -361,13 +361,13 @@
             currentManageData = null;
         }
 
-        // 【ログ送信機能付き】予約の確定処理
+        // 予約の確定処理（ログを送信）
         document.getElementById('btn-approve').onclick = async () => {
             if (!currentManageId) return;
             try {
                 await updateDoc(doc(db, "reservations", currentManageId), { confirmed: true });
                 
-                // ログ送信
+                // ログの送信
                 await addDoc(collection(db, "logs"), {
                     timestamp: new Date().toISOString(),
                     category: "reservation",
@@ -381,23 +381,14 @@
             } catch (e) { console.error(e); alert('エラーが発生しました'); }
         };
 
-        // 予約の確定取り消し
-        document.getElementById('btn-unapprove').onclick = async () => {
-            if (!currentManageId) return;
-            try {
-                await updateDoc(doc(db, "reservations", currentManageId), { confirmed: false });
-                closeModal();
-            } catch (e) { console.error(e); alert('エラーが発生しました'); }
-        };
-
-        // 【ログ送信機能付き】予約の却下/削除処理（論理削除）
+        // 予約の却下/削除処理（論理削除、ログを送信）
         document.getElementById('btn-delete').onclick = async () => {
             if (!currentManageId) return;
             if (confirm('本当にこの予約を却下/削除しますか？')) {
                 try {
                     await updateDoc(doc(db, "reservations", currentManageId), { deleted: true });
                     
-                    // ログ送信
+                    // ログの送信
                     await addDoc(collection(db, "logs"), {
                         timestamp: new Date().toISOString(),
                         category: "reservation",
@@ -412,7 +403,7 @@
             }
         };
 
-        // 【ログ送信機能付き】お知らせの追加処理
+        // お知らせ追加（前回通りのシンプルな処理）
         window.submitAnnouncement = async function() {
             const type = document.getElementById('ann-type').value;
             const title = document.getElementById('ann-title').value.trim();
@@ -429,16 +420,6 @@
                     type, title, expire, notes,
                     deleted: false,
                     createdAt: new Date().toISOString()
-                });
-
-                // ログ送信
-                await addDoc(collection(db, "logs"), {
-                    timestamp: new Date().toISOString(),
-                    category: "announcement",
-                    annType: type,
-                    opType: "create",
-                    title: title,
-                    expire: expire
                 });
 
                 alert('お知らせを追加しました！');
@@ -466,20 +447,9 @@
                 li.innerHTML = `${badge} ${ann.title} (〜${ann.expire.replace('T', ' ')}) 
                                 <button class="delete-ann-btn" title="削除する">×</button>`;
                 
-                // 【ログ送信機能付き】お知らせ削除（論理削除）
                 li.querySelector('button').onclick = async () => {
                     if (confirm(`「${ann.title}」を削除しますか？`)) {
                         await updateDoc(doc(db, "announcements", ann.id), { deleted: true });
-                        
-                        // ログ送信
-                        await addDoc(collection(db, "logs"), {
-                            timestamp: new Date().toISOString(),
-                            category: "announcement",
-                            annType: ann.type,
-                            opType: "delete",
-                            title: ann.title,
-                            expire: ann.expire
-                        });
                     }
                 };
                 list.appendChild(li);
