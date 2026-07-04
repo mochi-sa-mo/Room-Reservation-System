@@ -278,13 +278,13 @@
                 initYoyakuGrid(); // 反映してグリッド再描画
             });
 
-            // 2. 他バンドの既存確定予約の取得
+            // 2. 他バンドの既存予約の取得（保留中も含むように変更）
             onSnapshot(collection(db, "reservations"), (snapshot) => {
                 dbConfirmedReservations = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // 来週分(week===1)かつ確定済み(confirmed)かつ論理削除されていないデータを抽出
-                    if (data.week === 1 && data.confirmed === true && data.deleted !== true) {
+                    // 来週分(week===1)かつ論理削除されていないデータを抽出（確定フラグの条件を削除）
+                    if (data.week === 1 && data.deleted !== true) {
                         dbConfirmedReservations.push(data);
                     }
                 });
@@ -325,14 +325,15 @@
                         cell.classList.add('admin-disabled');
                         cell.textContent = '予約不可';
                     } else {
-                        // 他バンドの既存予約の有無判定
+                        // 他バンドの既存予約の有無判定（保留中も含む）
                         const cellRes = dbConfirmedReservations.filter(r => r.day === dIndex && r.period === pIndex);
                         if (cellRes.length > 0) {
                             cell.classList.add('has-existing');
                             cellRes.forEach(res => {
                                 const tag = document.createElement('div');
                                 tag.className = 'faint-band-tag';
-                                tag.textContent = res.bandName;
+                                // 未確定の場合は(保留中)と表示する
+                                tag.textContent = res.bandName + (res.confirmed ? '' : ' (保留中)');
                                 cell.appendChild(tag);
                             });
                         }
