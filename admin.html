@@ -136,15 +136,6 @@
         .data-table th {
             background: #eee;
         }
-        .badge {
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 0.85em;
-            color: white;
-            font-weight: bold;
-        }
-        .badge-event { background: #d0021b; }
-        .badge-deadline { background: #f5a623; }
 
         .schedule-container {
             background: #fff;
@@ -501,7 +492,7 @@
             });
         }
 
-        // 案内登録 (新規インサート + ★操作ログ記録機能)
+        // 案内登録
         async function submitAnnouncement(event, type) {
             event.preventDefault();
             const prefix = type === 'event' ? 'e' : 'd';
@@ -532,7 +523,6 @@
             try {
                 await addDoc(collection(db, "announcements"), data);
 
-                // ★新規追加：操作ログへの書き込み処理
                 await addDoc(collection(db, "logs"), {
                     timestamp: new Date().toISOString(),
                     category: "announcement",
@@ -550,7 +540,7 @@
             }
         }
 
-        // 案内一覧描画
+        // 案内一覧描画（★網掛けバッジスタイルを完全撤廃）
         function renderAnnouncements() {
             const tbody = document.getElementById('announcement-tbody'); 
             tbody.innerHTML = '';
@@ -561,7 +551,10 @@
             sortedData.forEach(item => {
                 const tr = document.createElement('tr');
                 const typeTd = document.createElement('td'); 
-                typeTd.innerHTML = item.type === 'event' ? '<span class="badge badge-event">イベント</span>' : '<span class="badge badge-deadline">締め切り</span>';
+                
+                // ★修正：網掛けスパンを廃止し、プレーンな文字に変更
+                typeTd.textContent = item.type === 'event' ? 'イベント' : '締め切り';
+                
                 const titleTd = document.createElement('td'); titleTd.textContent = item.title;
                 const expireTd = document.createElement('td'); expireTd.textContent = item.expire.replace('T', ' ');
                 
@@ -575,10 +568,9 @@
             });
         }
 
-        // 案内論理削除 (削除 + ★操作ログ記録機能)
+        // 案内論理削除
         async function deleteAnnouncement(id) {
             if (confirm('この案内を削除しますか？')) {
-                // 削除対象のタイトル情報を特定
                 const target = dbAnnouncements.find(a => a.id === id);
                 const title = target ? target.title : "不明な案内";
                 const annType = target ? target.type : "unknown";
@@ -586,7 +578,6 @@
                 try {
                     await updateDoc(doc(db, "announcements", id), { deleted: true });
 
-                    // ★新規追加：操作ログへの消去書き込み処理
                     await addDoc(collection(db, "logs"), {
                         timestamp: new Date().toISOString(),
                         category: "announcement",
@@ -613,14 +604,31 @@
         }
         function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; document.body.classList.remove('modal-open'); currentEditingId = null; }
         
+        // ★修正：お知らせ編集保存時の「操作ログ記録処理」を追加
         async function saveEditedData() {
             const title = document.getElementById('edit-title').value.trim();
             const expire = document.getElementById('edit-expire').value;
             if (!title || !expire) return alert('必須です');
             
-            await updateDoc(doc(db, "announcements", currentEditingId), { title: title, expire: expire });
-            closeEditModal();
-            alert('変更を保存しました。');
+            try {
+                await updateDoc(doc(db, "announcements", currentEditingId), { title: title, expire: expire });
+                
+                // ログ送信
+                await addDoc(collection(db, "logs"), {
+                    timestamp: new Date().toISOString(),
+                    category: "announcement",
+                    opType: "update",
+                    title: title,
+                    expire: expire,
+                    detail: `管理者が案内「${title}」の登録情報を編集しました`
+                });
+
+                closeEditModal();
+                alert('変更を保存しました。');
+            } catch (error) {
+                console.error(error);
+                alert('保存に失敗しました。');
+            }
         }
 
         async function toggleColumnBlock(dIndex) {
@@ -694,26 +702,63 @@
                         
                         if (res.cancelRequested) {
                             const btnReject = document.createElement('button'); btnReject.className = 'btn-tag-reject'; btnReject.textContent = '却下';
+                            
+                            // ★修正：キャンセル申請の却下時に「操作ログ記録処理」を追加
                             btnReject.onclick = async (e) => { 
                                 e.stopPropagation(); 
-                                await updateDoc(doc(db, "reservations", res.id), { cancelRequested: false }); 
+                                try {
+                                    await updateDoc(doc(db, "reservations", res.id), { cancelRequested: false }); 
+                                    await addDoc(collection(db, "logs"), {
+                                        timestamp: new Date().toISOString(),
+                                        category: "reservation",
+                                        opType: "update",
+                                        bandName: res.bandName,
+                                        slot: `${days[dIndex]}曜 ${periods[pIndex]}`,
+                                        detail: `管理者が ${res.bandName} からの消去申請を【却下】しました`
+                                    });
+                                } catch (err) { console.error(err); }
                             };
                             ops.appendChild(btnReject);
                         } else {
                             const btnState = document.createElement('button'); btnState.textContent = res.confirmed ? '取消' : '確定';
+                            
+                            // ★修正：予約の確定・確定取消時に「操作ログ記録処理」を追加
                             btnState.onclick = async (e) => { 
                                 e.stopPropagation(); 
-                                await updateDoc(doc(db, "reservations", res.id), { confirmed: !res.confirmed }); 
+                                try {
+                                    const nextState = !res.confirmed;
+                                    await updateDoc(doc(db, "reservations", res.id), { confirmed: nextState }); 
+                                    await addDoc(collection(db, "logs"), {
+                                        timestamp: new Date().toISOString(),
+                                        category: "reservation",
+                                        opType: "update",
+                                        bandName: res.bandName,
+                                        slot: `${days[dIndex]}曜 ${periods[pIndex]}`,
+                                        detail: `管理者が予約状態を【${res.confirmed ? '確定' : '承認待ち'}】から【${nextState ? '確定' : '承認待ち'}】に変更しました`
+                                    });
+                                } catch (err) { console.error(err); }
                             };
                             ops.appendChild(btnState);
                         }
 
                         const btnDel = document.createElement('button'); btnDel.className = 'btn-tag-del'; btnDel.textContent = '削';
+                        
+                        // ★修正：予約の削除ボタン（削）押下時に「操作ログ記録処理」を追加
                         btnDel.onclick = async (e) => {
                             e.stopPropagation();
                             const msg = res.cancelRequested ? `部員からキャンセル申請が出ています。\n${res.bandName}の予約を完全に消去（論理削除）しますか？` : `${res.bandName}の希望を削除しますか？`;
                             if (confirm(msg)) { 
-                                await updateDoc(doc(db, "reservations", res.id), { deleted: true }); 
+                                try {
+                                    await updateDoc(doc(db, "reservations", res.id), { deleted: true }); 
+                                    await addDoc(collection(db, "logs"), {
+                                        timestamp: new Date().toISOString(),
+                                        category: "reservation",
+                                        opType: "delete",
+                                        bandName: res.bandName,
+                                        slot: `${days[dIndex]}曜 ${periods[pIndex]}`,
+                                        detail: `管理者が予約を【却下/削除（論理削除）】しました`
+                                    });
+                                } catch (err) { console.error(err); }
                             }
                         };
 
