@@ -130,6 +130,10 @@
             background-image: linear-gradient(45deg, rgba(255,255,255,0.15) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.15) 75%, transparent 75%, transparent);
             background-size: 10px 10px;
         }
+        /* 保留中（未確定）のスタイルを追加 */
+        .band-tag.pending {
+            background-color: #f5a623;
+        }
 
         /* 詳細表示用モーダル */
         .modal {
@@ -263,11 +267,12 @@
     </div>
 
     <script type="module">
-        // ★この数行を追加（未ログイン者をlogin.htmlへ弾く処理）
+        // ★未ログイン者をlogin.htmlへ弾く処理
         const role = localStorage.getItem('userRole');
         if (!role) {
             window.location.href = 'login.html';
         }
+        
         import { db } from "./firebase.js";
         import { collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
@@ -399,20 +404,30 @@
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     
-                    // 論理フィルタリング：選択週(week)かつ確定済み(confirmed)かつ削除希望(deleted)でないものを抽出
-                    // ※今後の論理削除拡張に対応するため「!r.deleted」を安全に考慮
+                    // 論理フィルタリング：選択週(week)かつ削除希望(deleted)でないものを抽出（未確定も含むように変更）
                     const cellReservations = dbReservations.filter(r => 
                         r.week === currentWeekState && 
                         r.day === dIndex && 
                         r.period === pIndex && 
-                        r.confirmed === true &&
                         r.deleted !== true
                     );
                     
                     cellReservations.forEach(res => {
                         const tag = document.createElement('div');
-                        tag.className = `band-tag ${res.cancelRequested ? 'cancel-requested' : ''}`;
-                        tag.textContent = res.bandName + (res.cancelRequested ? ' (取消申請中)' : '');
+                        
+                        // 状態に応じた色とテキストの割り当て
+                        let statusClass = '';
+                        let statusText = '';
+                        if (res.cancelRequested) {
+                            statusClass = 'cancel-requested';
+                            statusText = ' (取消申請中)';
+                        } else if (!res.confirmed) {
+                            statusClass = 'pending';
+                            statusText = ' (保留中)';
+                        }
+
+                        tag.className = `band-tag ${statusClass}`;
+                        tag.textContent = res.bandName + statusText;
                         tag.onclick = () => openDetailModal(`${res.bandName} の予約詳細`, res, 'reservation');
                         cell.appendChild(tag);
                     });
@@ -452,7 +467,8 @@
                 fields = [
                     { label: 'バンド名', value: data.bandName },
                     { label: '備考', value: data.notes },
-                    { label: '状態', value: data.cancelRequested ? '調整者にキャンセル申請が出されています' : '確定済み' }
+                    // モーダルの状態表記も、未確定の場合は「承認待ち（保留中）」に変更
+                    { label: '状態', value: data.cancelRequested ? '取消申請中' : (data.confirmed ? '確定済み' : '承認待ち（保留中）') }
                 ];
 
                 // キャンセル申請ボタンの動的生成
