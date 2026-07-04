@@ -237,7 +237,7 @@
 
     <script type="module">
         import { db } from "./firebase.js";
-        import { collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
