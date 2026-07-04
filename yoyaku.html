@@ -51,7 +51,7 @@
             gap: 1px;
             background-color: var(--border-color);
             border: 1px solid var(--border-color);
-            min-width: max-content; /* ←★この1行を追加！ */
+            min-width: max-content; /* スマホスクロール対応 */
         }
         .header-cell, .period-cell {
             background-color: #eee;
@@ -237,6 +237,12 @@
     </div>
 
     <script type="module">
+        // ★未ログイン者を弾く処理
+        const role = localStorage.getItem('userRole');
+        if (!role) {
+            window.location.href = 'login.html';
+        }
+
         import { db } from "./firebase.js";
         import { collection, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
@@ -248,7 +254,6 @@
         let dbDisabledSlots = [];
 
         window.onload = function() {
-            const role = localStorage.getItem('userRole');
             if (role) {
                 document.getElementById('current-role').textContent = 
                     role === 'admin' ? '調整者' : (role === 'log' ? '閲覧者' : 'ユーザ');
@@ -279,12 +284,11 @@
                 initYoyakuGrid(); // 反映してグリッド再描画
             });
 
-            // 2. 他バンドの既存予約の取得（保留中も含むように変更）
+            // 2. 他バンドの既存予約の取得（保留中も含む）
             onSnapshot(collection(db, "reservations"), (snapshot) => {
                 dbConfirmedReservations = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // 来週分(week===1)かつ論理削除されていないデータを抽出（確定フラグの条件を削除）
                     if (data.week === 1 && data.deleted !== true) {
                         dbConfirmedReservations.push(data);
                     }
@@ -319,8 +323,8 @@
                     cell.className = 'cell';
                     cell.id = `cell-${dIndex}-${pIndex}`;
                     
-                    // 管理者ブロックの有無判定
-                    const isAdminDisabled = dbDisabledSlots.some(s => s.day === dIndex && s.period === pIndex);
+                    // ★修正ポイント：本当に「ブロックされている(blocked === true)」枠だけを判定する
+                    const isAdminDisabled = dbDisabledSlots.some(s => s.day === dIndex && s.period === pIndex && s.blocked === true);
                     
                     if (isAdminDisabled) {
                         cell.classList.add('admin-disabled');
@@ -413,10 +417,9 @@
                     });
                 });
 
-                // すべてのスロットのインサート通信が完了するまで待機
                 await Promise.all(promises);
 
-                // ▼▼▼ ここに「ログ送信処理」を追加 ▼▼▼
+                // ★新規追加機能：ログの送信★
                 await addDoc(collection(db, "logs"), {
                     timestamp: new Date().toISOString(),
                     category: "reservation",
@@ -425,7 +428,6 @@
                     slot: selectedSlots.map(s => s.text).join(', '),
                     detail: "一般ユーザーより新規予約希望が送信されました"
                 });
-                // ▲▲▲ 追加ここまで ▲▲▲
 
                 alert(`【送信完了】\n${bandName} の予約希望を ${selectedSlots.length} 件送信しました。\n日曜日の管理者調整の後に時間割が確定します。`);
                 
