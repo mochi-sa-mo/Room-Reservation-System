@@ -179,7 +179,7 @@
 
     <script type="module">
         import { db } from "./firebase.js";
-        import { collection, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
 
         window.onload = function() {
             const role = localStorage.getItem('userRole');
