@@ -352,15 +352,18 @@
             });
         }
 
-        // 告知エリアのレンダリング（有効期限によるフィルタリング）
+        // 告知エリアのレンダリング（有効期限によるフィルタリング）    
         function renderAnnouncements() {
             const eventList = document.getElementById('event-list');
             const deadlineList = document.getElementById('deadline-list');
             eventList.innerHTML = '';
             deadlineList.innerHTML = '';
 
+            let eventCount = 0;
+            let deadlineCount = 0;
+
             dbAnnouncements.forEach(item => {
-                // ★修正箇所：Date型オブジェクトを生成して正確にリアルタイム時系列比較を行う
+                // Date型オブジェクトを生成して正確にリアルタイム時系列比較を行う
                 if (item.expire && new Date(item.expire) > new Date() && item.deleted !== true) {
                     const li = document.createElement('li');
                     li.className = 'clickable-announcement';
@@ -369,12 +372,22 @@
                     if (item.type === 'event') {
                         li.onclick = () => openDetailModal("📢 イベント詳細", item, 'event');
                         eventList.appendChild(li);
+                        eventCount++; // 見つかったらカウントアップ
                     } else if (item.type === 'deadline') {
                         li.onclick = () => openDetailModal("⚠️ 締め切り詳細", item, 'deadline');
                         deadlineList.appendChild(li);
+                        deadlineCount++; // 見つかったらカウントアップ
                     }
                 }
             });
+
+            // ★追加：もし1件も表示するものがなければメッセージを出す
+            if (eventCount === 0) {
+                eventList.innerHTML = '<li style="color: #888; list-style: none; margin-left: -20px;">連絡はありません</li>';
+            }
+            if (deadlineCount === 0) {
+                deadlineList.innerHTML = '<li style="color: #888; list-style: none; margin-left: -20px;">連絡はありません</li>';
+            }
         }
 
         // 時間割グリッドのレンダリング
