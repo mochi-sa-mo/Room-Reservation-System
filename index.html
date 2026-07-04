@@ -362,7 +362,7 @@
 
             dbAnnouncements.forEach(item => {
                 // 論理フィルタリング：非表示日時(expire)が現在時刻より未来のもののみを表示対象とする
-                if (item.expire && item.expire > nowStr) {
+                if (item.expire && item.expire > nowStr && item.deleted !== true) {
                     const li = document.createElement('li');
                     li.className = 'clickable-announcement';
                     li.textContent = item.title;
