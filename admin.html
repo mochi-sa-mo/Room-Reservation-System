@@ -200,7 +200,7 @@
         }
 
         .admin-tag {
-            position: relative; /* ★吹き出しの基準位置として追加 */
+            position: relative;
             font-size: 0.8em;
             padding: 4px;
             border-radius: 3px;
@@ -227,7 +227,7 @@
             100% { opacity: 1; }
         }
 
-        /* ★吹き出し専用のスタイル（新規追加） */
+        /* 吹き出しのスタイル */
         .speech-bubble {
             visibility: hidden;
             opacity: 0;
@@ -246,13 +246,12 @@
             max-width: 220px;
             font-size: 0.9em;
             font-weight: normal;
-            pointer-events: none; /* マウスの邪魔にならないようにする */
+            pointer-events: none;
             margin-bottom: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.3);
             transition: opacity 0.2s, visibility 0.2s;
             word-break: break-all;
         }
-        /* 吹き出しの尻尾部分（三角形） */
         .speech-bubble::after {
             content: "";
             position: absolute;
@@ -263,7 +262,6 @@
             border-style: solid;
             border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
         }
-        /* マウスホバーで表示 */
         .admin-tag:hover .speech-bubble {
             visibility: visible;
             opacity: 1;
@@ -344,7 +342,7 @@
         .capture-mode .btn-col-block, 
         .capture-mode .tag-ops, 
         .capture-mode .caption-non-capture,
-        .capture-mode .speech-bubble { /* ★画像保存時は吹き出しも隠す */
+        .capture-mode .speech-bubble { 
             display: none !important; 
         }
         .capture-mode .cell { min-height: 55px !important; }
@@ -456,7 +454,6 @@
                 return;
             }
 
-            // イベントリスナー結合
             document.getElementById('btn-logout').onclick = confirmLogout;
             document.getElementById('tab-event').onclick = () => switchTab('event');
             document.getElementById('tab-deadline').onclick = () => switchTab('deadline');
@@ -478,7 +475,6 @@
             document.getElementById(`form-${type}`).classList.add('active'); 
         }
 
-        // Firestore購読
         function startRealtimeSync() {
             onSnapshot(collection(db, "announcements"), (snapshot) => {
                 dbAnnouncements = [];
@@ -505,7 +501,7 @@
             });
         }
 
-        // 案内登録 (新規インサート)
+        // 案内登録 (新規インサート + ★操作ログ記録機能)
         async function submitAnnouncement(event, type) {
             event.preventDefault();
             const prefix = type === 'event' ? 'e' : 'd';
@@ -519,7 +515,7 @@
                 title: title,
                 date: document.getElementById(`${prefix}-date`).value.trim(),
                 expire: expire,
-                deleted: false // 論理削除フラグの初期化
+                deleted: false
             };
 
             if (type === 'event') {
@@ -535,6 +531,18 @@
 
             try {
                 await addDoc(collection(db, "announcements"), data);
+
+                // ★新規追加：操作ログへの書き込み処理
+                await addDoc(collection(db, "logs"), {
+                    timestamp: new Date().toISOString(),
+                    category: "announcement",
+                    annType: type,
+                    opType: "create",
+                    title: title,
+                    expire: expire,
+                    detail: `管理者が${type === 'event' ? 'イベント' : '締め切り'}「${title}」を登録しました`
+                });
+
                 document.getElementById(`form-${type}`).reset();
                 alert('登録しました。');
             } catch (error) {
@@ -542,12 +550,11 @@
             }
         }
 
-        // 案内一覧描画 (期限の昇順ソート ＆ 論理削除フィルタ)
+        // 案内一覧描画
         function renderAnnouncements() {
             const tbody = document.getElementById('announcement-tbody'); 
             tbody.innerHTML = '';
             
-            // 論理削除(deleted !== true)のデータのみを抽出し、期限順にソート
             const activeData = dbAnnouncements.filter(a => a.deleted !== true);
             const sortedData = activeData.sort((a, b) => a.expire < b.expire ? -1 : a.expire > b.expire ? 1 : 0);
             
@@ -568,10 +575,29 @@
             });
         }
 
-        // 案内論理削除
+        // 案内論理削除 (削除 + ★操作ログ記録機能)
         async function deleteAnnouncement(id) {
             if (confirm('この案内を削除しますか？')) {
-                await updateDoc(doc(db, "announcements", id), { deleted: true });
+                // 削除対象のタイトル情報を特定
+                const target = dbAnnouncements.find(a => a.id === id);
+                const title = target ? target.title : "不明な案内";
+                const annType = target ? target.type : "unknown";
+
+                try {
+                    await updateDoc(doc(db, "announcements", id), { deleted: true });
+
+                    // ★新規追加：操作ログへの消去書き込み処理
+                    await addDoc(collection(db, "logs"), {
+                        timestamp: new Date().toISOString(),
+                        category: "announcement",
+                        annType: annType,
+                        opType: "delete",
+                        title: title,
+                        detail: `管理者が${annType === 'event' ? 'イベント' : '締め切り'}「${title}」を削除しました`
+                    });
+                } catch (error) {
+                    console.error("ログ送信エラー:", error);
+                }
             }
         }
 
@@ -597,27 +623,23 @@
             alert('変更を保存しました。');
         }
 
-        // 曜日縦一括ブロック制御（論理値状態反転）
         async function toggleColumnBlock(dIndex) {
             const allPeriods = [0,1,2,3,4,5,6,7];
-            // 該当する曜日の8枠すべてがすでにブロック状態（blocked === true）かチェック
             const isAllBlocked = allPeriods.every(pIndex => 
                 dbDisabledSlots.some(s => s.day === dIndex && s.period === pIndex && s.blocked === true)
             );
 
             const promises = allPeriods.map(pIndex => {
-                // ドキュメントIDを座標固定にすることで冪等性を確保
                 const slotRef = doc(db, "disabledSlots", `slot_${dIndex}_${pIndex}`);
                 return setDoc(slotRef, {
                     day: dIndex,
                     period: pIndex,
-                    blocked: !isAllBlocked // すべてブロック済なら一括解除(false)、そうでないなら一括ブロック(true)
+                    blocked: !isAllBlocked
                 });
             });
             await Promise.all(promises);
         }
 
-        // 個別ブロック枠トグル制御
         async function toggleSingleBlock(dIndex, pIndex, currentBlockedState) {
             const slotRef = doc(db, "disabledSlots", `slot_${dIndex}_${pIndex}`);
             await setDoc(slotRef, {
@@ -627,7 +649,6 @@
             });
         }
 
-        // 時間割調整グリッド描画
         function renderAdminGrid() {
             const grid = document.getElementById('admin-grid'); grid.innerHTML = '';
             const emptyCell = document.createElement('div'); emptyCell.className = 'header-cell'; grid.appendChild(emptyCell);
@@ -645,7 +666,6 @@
                 days.forEach((day, dIndex) => {
                     const cell = document.createElement('div'); cell.className = 'cell';
                     
-                    // 当該マスのブロック状態抽出
                     const slotData = dbDisabledSlots.find(s => s.day === dIndex && s.period === pIndex);
                     const isBlocked = slotData ? slotData.blocked === true : false;
                     
@@ -653,7 +673,6 @@
 
                     const blockedText = document.createElement('div'); blockedText.className = 'cell-blocked-text'; blockedText.textContent = '予約不可'; cell.appendChild(blockedText);
 
-                    // 来週分(week===1)かつ論理削除されていない予約希望をフィルタリング
                     const cellRes = dbReservations.filter(r => r.week === 1 && r.day === dIndex && r.period === pIndex && r.deleted !== true);
                     
                     cellRes.forEach(res => {
@@ -664,7 +683,6 @@
                         titleSpan.textContent = res.bandName + (res.cancelRequested ? ' [⚠️消去申請あり]' : (res.confirmed ? ' [確]' : ''));
                         tag.appendChild(titleSpan);
 
-                        // ★追加: 備考が入力されている場合のみ「吹き出し要素」を作成
                         if (res.notes && res.notes.trim() !== "") {
                             const bubble = document.createElement('div');
                             bubble.className = 'speech-bubble';
@@ -695,7 +713,6 @@
                             e.stopPropagation();
                             const msg = res.cancelRequested ? `部員からキャンセル申請が出ています。\n${res.bandName}の予約を完全に消去（論理削除）しますか？` : `${res.bandName}の希望を削除しますか？`;
                             if (confirm(msg)) { 
-                                // 物理削除はせず、論理削除フラグを更新
                                 await updateDoc(doc(db, "reservations", res.id), { deleted: true }); 
                             }
                         };
