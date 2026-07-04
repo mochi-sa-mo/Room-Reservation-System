@@ -293,10 +293,9 @@
                 const timeTd = document.createElement('td');
                 timeTd.textContent = formatDate(log.timestamp);
 
+                // ★修正箇所：タグで囲まずプレーンなテキストを出力する
                 const typeTd = document.createElement('td');
-                typeTd.innerHTML = log.annType === 'event' 
-                    ? '<span class="badge" style="background:#d0021b;">イベント</span>' 
-                    : '<span class="badge" style="background:#f5a623;">締め切り</span>';
+                typeTd.textContent = log.annType === 'event' ? 'イベント' : '締め切り';
 
                 const opTd = document.createElement('td');
                 let badgeClass = '';
