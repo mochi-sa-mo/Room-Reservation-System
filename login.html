@@ -141,17 +141,17 @@
             const errorMsg = document.getElementById('error-msg');
 
             // 認証の論理境界条件（固定ID・パスワードの照合）
-            if (id === 'yu-za' && pass === 'yu-za') {
+            if (id === 'keion' && pass === 'cist') {
                 errorMsg.style.display = 'none';
                 localStorage.setItem('userRole', 'user');
                 window.location.href = 'index.html';
             } 
-            else if (id === 'admin' && pass === 'admin') {
+            else if (id === 'admin' && pass === '0123blbl') {
                 errorMsg.style.display = 'none';
                 localStorage.setItem('userRole', 'admin');
                 window.location.href = 'admin.html';
             }
-            else if (id === 'log' && pass === 'log') {
+            else if (id === 'log' && pass === 'log_log') {
                 errorMsg.style.display = 'none';
                 localStorage.setItem('userRole', 'log');
                 window.location.href = 'log.html';
