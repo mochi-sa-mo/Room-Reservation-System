@@ -295,13 +295,13 @@
         // --- 絶対日付を計算する関数群 ---
         function getTodayStr() {
             // const now = new Date();
-            const now = new Date("2026-07-13T10:00:00"); // デバック
+            const now = new Date("2026-07-14T10:00:00"); // デバック
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         function getWeekDates(offset) {
             // const now = new Date();
-            const now = new Date("2026-07-13T10:00:00"); // デバック
+            const now = new Date("2026-07-14T10:00:00"); // デバック
             // 日曜日を週の開始として日付を計算
             const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + (offset * 7));
             const dates = [];
