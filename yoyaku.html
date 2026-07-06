@@ -254,7 +254,8 @@
 
         // --- 来週の日付を計算する関数 ---
         function getNextWeekDates() {
-            const now = new Date();
+            // const now = new Date();
+            const now = new Date("2026-07-14T10:00:00"); // デバック
             const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 7);
             const dates = [];
             for (let i = 0; i < 7; i++) {
