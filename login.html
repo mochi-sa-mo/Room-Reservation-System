@@ -141,7 +141,7 @@
             const errorMsg = document.getElementById('error-msg');
 
             // 認証の論理境界条件（固定ID・パスワードの照合）
-            if (id === 'keion' && pass === 'cist') {
+            if (id === 'cist' && pass === 'keion') {
                 errorMsg.style.display = 'none';
                 localStorage.setItem('userRole', 'user');
                 window.location.href = 'index.html';
