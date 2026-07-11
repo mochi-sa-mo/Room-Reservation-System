@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>システム管理 - 部室予約</title>
+    <style>
+        body { font-family: sans-serif; background: #f5f7fa; padding: 20px; }
+        .container { background: #fff; padding: 20px; border-radius: 8px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        textarea { width: 100%; height: 100px; padding: 8px; box-sizing: border-box; }
+        .btn { padding: 10px 20px; background: #4A90E2; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-danger { background: #d0021b; }
+        .status-badge { display: inline-block; padding: 5px 10px; border-radius: 4px; color: white; font-weight: bold; margin-bottom: 15px; }
+        .status-on { background: #d0021b; }
+        .status-off { background: #4caf50; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🛠️ システムメンテナンス設定</h2>
+        <div id="current-status" class="status-badge status-off">通常稼働中</div>
+        
+        <div class="form-group">
+            <label><strong>メンテナンス状態</strong></label><br>
+            <label><input type="radio" name="mnt-status" value="false"> 通常稼働（ログイン可能）</label><br>
+            <label><input type="radio" name="mnt-status" value="true"> メンテナンス中（ログイン遮断）</label>
+        </div>
+        
+        <div class="form-group">
+            <label><strong>ログイン画面に表示するメッセージ</strong></label>
+            <textarea id="mnt-message" placeholder="例: 現在システムメンテナンス中です。〇〇時頃に復旧予定です。"></textarea>
+        </div>
+        
+        <button class="btn" id="btn-save">設定を保存して反映</button>
+        <button class="btn btn-danger" onclick="location.href='login.html'; localStorage.removeItem('userRole');" style="margin-top:20px; width:100%;">ログアウト</button>
+    </div>
+
+    <script type="module">
+        const role = localStorage.getItem('userRole');
+        if (role !== 'sysadmin') {
+            alert('システム管理者権限がありません。');
+            window.location.href = 'login.html';
+        }
+
+        import { db } from "./firebase.js";
+        import { doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+        const docRef = doc(db, "systemSettings", "maintenance");
+
+        // リアルタイム読み込み
+        onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                document.querySelector(`input[name="mnt-status"][value="${data.active}"]`).checked = true;
+                document.getElementById('mnt-message').value = data.message || '';
+                
+                const badge = document.getElementById('current-status');
+                if (data.active) {
+                    badge.textContent = '⚠️ メンテナンスモード稼働中 (一般アクセス遮断)';
+                    badge.className = 'status-badge status-on';
+                } else {
+                    badge.textContent = '🟢 通常稼働中';
+                    badge.className = 'status-badge status-off';
+                }
+            }
+        });
+
+        // 保存処理
+        document.getElementById('btn-save').onclick = async () => {
+            const isActive = document.querySelector('input[name="mnt-status"]:checked').value === "true";
+            const msg = document.getElementById('mnt-message').value.trim();
+            
+            try {
+                await setDoc(docRef, { active: isActive, message: msg });
+                alert("設定をシステム全体に反映しました。");
+            } catch (error) {
+                console.error(error);
+                alert("保存に失敗しました。");
+            }
+        };
+    </script>
+</body>
+</html>
