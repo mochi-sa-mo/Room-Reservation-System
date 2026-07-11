@@ -776,12 +776,12 @@
                     cellRes.forEach(res => {
                         const tag = document.createElement('div');
                         
-                        // ★状態に応じたCSSクラスの付与
+                        // ★状態に応じたCSSクラスの付与（優先順位を数学的に補正）
                         let statusClass = '';
                         if (res.rejected) statusClass = 'rejected';
                         else if (res.cancelRequested) statusClass = 'has-alert';
-                        else if (res.isAdditional) statusClass = 'additional';
-                        else if (res.confirmed) statusClass = 'confirmed';
+                        else if (res.confirmed) statusClass = 'confirmed';      // ★先に「確定（青）」を判定
+                        else if (res.isAdditional) statusClass = 'additional'; // ★確定していない追加予約のみ「緑（保留）」
                         
                         tag.className = `admin-tag ${statusClass}`;
                         
@@ -790,8 +790,8 @@
                         let statusText = '';
                         if (res.rejected) statusText = ' [落選]';
                         else if (res.cancelRequested) statusText = ' [⚠️取消]';
+                        else if (res.confirmed) statusText = ' [確]';      // ★テキストも同じ順番に
                         else if (res.isAdditional) statusText = ' [追加]';
-                        else if (res.confirmed) statusText = ' [確]';
 
                         titleSpan.textContent = res.bandName + statusText;
                         tag.appendChild(titleSpan);
