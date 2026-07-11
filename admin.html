@@ -363,8 +363,13 @@
         .capture-mode .speech-bubble { 
             display: none !important; 
         }
-        /* ★画像保存時、落選したバンドはそもそも表示させない */
-        .capture-mode .admin-tag.rejected {
+
+        /* ★画像保存時、確定(.confirmed)以外のタグをすべて非表示 */
+        .capture-mode .admin-tag:not(.confirmed) {
+            display: none !important;
+        }
+        /* ★画像保存時、[確] などの付加文字を非表示 */
+        .capture-mode .status-suffix {
             display: none !important;
         }
 
@@ -787,13 +792,23 @@
                         
                         const titleSpan = document.createElement('div'); titleSpan.className = 'tag-title';
                         
+                        // ★文字列を分離してスパンに包む（画像出力時に非表示にするため）
+                        const nameSpan = document.createElement('span'); 
+                        nameSpan.textContent = res.bandName;
+                        
+                        const statusSpan = document.createElement('span'); 
+                        statusSpan.className = 'status-suffix';
+                        
                         let statusText = '';
                         if (res.rejected) statusText = ' [落選]';
                         else if (res.cancelRequested) statusText = ' [⚠️取消]';
-                        else if (res.confirmed) statusText = ' [確]';      // ★テキストも同じ順番に
+                        else if (res.confirmed) statusText = ' [確]';      
                         else if (res.isAdditional) statusText = ' [追加]';
 
-                        titleSpan.textContent = res.bandName + statusText;
+                        statusSpan.textContent = statusText;
+                        
+                        titleSpan.appendChild(nameSpan);
+                        titleSpan.appendChild(statusSpan);
                         tag.appendChild(titleSpan);
 
                         if (res.notes && res.notes.trim() !== "") {
