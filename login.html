@@ -16,8 +16,12 @@
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
         .error-message { color: #d0021b; font-size: 0.85em; margin-bottom: 15px; text-align: center; display: none; }
         
-        /* メンテナンス表示用 */
+        /* メンテナンス表示用（黄色） */
         .maintenance-alert { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9em; display: none; white-space: pre-wrap; word-wrap: break-word; }
+        
+        /* ★お知らせ表示用（水色） */
+        .notice-alert { background-color: #e3f2fd; border: 1px solid #b6d4fe; color: #004085; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9em; display: none; white-space: pre-wrap; word-wrap: break-word; }
+        .notice-alert h3 { margin-top: 0; margin-bottom: 8px; font-size: 1.05em; color: #004085; border-bottom: 1px solid #b6d4fe; padding-bottom: 4px; }
     </style>
 </head>
 <body>
@@ -27,6 +31,12 @@
         
         <!-- メンテナンス時のメッセージ領域 -->
         <div id="maintenance-alert" class="maintenance-alert"></div>
+
+        <!-- ★お知らせのメッセージ領域 -->
+        <div id="notice-alert" class="notice-alert">
+            <h3>📢 お知らせ</h3>
+            <div id="notice-content"></div>
+        </div>
 
         <div class="error-message" id="error-msg">IDまたはパスワードが間違っています。</div>
         
@@ -65,6 +75,22 @@
             }
         });
 
+        // ★お知らせ状態のリアルタイム監視
+        onSnapshot(doc(db, "systemSettings", "systemNotice"), (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                const noticeBox = document.getElementById('notice-alert');
+                const noticeContent = document.getElementById('notice-content');
+
+                if (data.active && data.message && data.message.trim() !== "") {
+                    noticeBox.style.display = 'block';
+                    noticeContent.textContent = data.message;
+                } else {
+                    noticeBox.style.display = 'none';
+                }
+            }
+        });
+
         document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const id = document.getElementById('userid').value.trim();
@@ -77,14 +103,12 @@
             errorMsg.style.display = 'none';
 
             try {
-                // データベース(accounts)から入力されたIDのデータを取得
                 const accountRef = doc(db, "accounts", id);
                 const accountSnap = await getDoc(accountRef);
 
                 if (accountSnap.exists() && accountSnap.data().password === pass) {
                     const assignedRole = accountSnap.data().role;
 
-                    // メンテナンス中の場合は、システム管理者(sysadmin)以外を強制弾き
                     if (isMaintenanceMode && assignedRole !== 'sysadmin') {
                         errorMsg.textContent = "現在メンテナンス中のためログインできません。";
                         errorMsg.style.display = 'block';
@@ -93,7 +117,6 @@
                         return;
                     }
 
-                    // 認証成功：ロールを保存して各画面へ遷移
                     localStorage.setItem('userRole', assignedRole);
 
                     if (assignedRole === 'admin') window.location.href = 'admin.html';
@@ -102,7 +125,6 @@
                     else window.location.href = 'index.html';
 
                 } else {
-                    // IDが存在しない、またはパスワード不一致
                     errorMsg.textContent = "IDまたはパスワードが間違っています。";
                     errorMsg.style.display = 'block';
                 }
