@@ -137,9 +137,15 @@
         .band-tag.pending {
             background-color: #f5a623;
         }
-        /* ★追加予約枠（即時確定）用の緑色スタイル★ */
+        /* ★追加予約枠（希望提出中）用の緑色スタイル */
         .band-tag.additional {
             background-color: #4caf50;
+        }
+        /* ★落選（却下）用のスタイル */
+        .band-tag.rejected {
+            background-color: #9e9e9e;
+            text-decoration: line-through;
+            opacity: 0.7;
         }
 
         .modal {
@@ -287,22 +293,17 @@
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
         
-        // ★状態を「週のオフセット値」に変更（0:今週, 1:来週）
         let currentWeekOffset = 0; 
         let dbReservations = [];
         let dbAnnouncements = [];
 
-        // --- 絶対日付を計算する関数群 ---
         function getTodayStr() {
             const now = new Date();
-            // const now = new Date("2026-07-14T10:00:00"); // デバック
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
         function getWeekDates(offset) {
             const now = new Date();
-            // const now = new Date("2026-07-14T10:00:00"); // デバック
-            // 日曜日を週の開始として日付を計算
             const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + (offset * 7));
             const dates = [];
             for (let i = 0; i < 7; i++) {
@@ -311,7 +312,6 @@
             }
             return dates;
         }
-        // -----------------------------
 
         window.onload = function() {
             if (role) {
@@ -409,7 +409,7 @@
             }
         }
 
-        // 時間割グリッドのレンダリング（絶対日付ベース）
+        // 時間割グリッドのレンダリング
         function renderGrid() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
@@ -421,14 +421,12 @@
             emptyCell.className = 'header-cell';
             grid.appendChild(emptyCell);
 
-            // 曜日のヘッダー作成と今日のハイライト判定
             days.forEach((day, dIndex) => {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'header-cell';
                 if (currentWeekDates[dIndex] === todayStr) {
                     dayCell.classList.add('today-col');
                 }
-                // ご要望通り日付数字は出さず、曜日テキストのみ
                 dayCell.textContent = day;
                 grid.appendChild(dayCell);
             });
@@ -443,12 +441,10 @@
                     const cell = document.createElement('div');
                     cell.className = 'cell';
                     
-                    // 今日の列ならセル全体をハイライト
                     if (currentWeekDates[dIndex] === todayStr) {
                         cell.classList.add('today-col');
                     }
                     
-                    // ★フィルタリング：絶対日付で一致するデータを抽出する！
                     const cellReservations = dbReservations.filter(r => 
                         r.date === currentWeekDates[dIndex] && 
                         r.period === pIndex && 
@@ -460,13 +456,21 @@
                         
                         let statusClass = '';
                         let statusText = '';
-                        if (res.cancelRequested) {
+                        
+                        // ★数理モデル S = {R, X, C, A} に基づく論理優先評価
+                        if (res.rejected) {
+                            statusClass = 'rejected';
+                            statusText = ' (落選)';
+                        } else if (res.cancelRequested) {
                             statusClass = 'cancel-requested';
                             statusText = ' (取消申請中)';
+                        } else if (res.confirmed) {
+                            statusClass = ''; // デフォルト青色
+                            statusText = '';
                         } else if (res.isAdditional) {
                             statusClass = 'additional';
-                            statusText = ' (追加枠)';
-                        } else if (!res.confirmed) {
+                            statusText = ' (追加希望)';
+                        } else {
                             statusClass = 'pending';
                             statusText = ' (保留中)';
                         }
@@ -509,7 +513,9 @@
                 ];
             } else if (type === 'reservation') {
                 let statusMsg = data.confirmed ? '確定済み' : '承認待ち（保留中）';
-                if (data.isAdditional) statusMsg = '即時確定済み（追加予約）';
+                if (data.isAdditional && !data.confirmed) statusMsg = '追加希望（承認待ち）';
+                if (data.isAdditional && data.confirmed) statusMsg = '確定済み（追加予約）';
+                if (data.rejected) statusMsg = '落選（管理者により却下されました）';
                 if (data.cancelRequested) statusMsg = '取消申請中';
 
                 fields = [
@@ -518,7 +524,8 @@
                     { label: '状態', value: statusMsg }
                 ];
 
-                if (!data.cancelRequested && !data.isAdditional) {
+                // ★キャンセル申請の条件を緩和：落選済み、または既に申請中でなければ許可
+                if (!data.cancelRequested && !data.rejected) {
                     const cancelBtn = document.createElement('button');
                     cancelBtn.className = 'btn btn-warning';
                     cancelBtn.style.marginBottom = '10px';
@@ -564,7 +571,7 @@
         }
 
         async function requestCancel(docId) {
-            if (confirm('本当にこの予約のキャンセル申請を調整者に送信しますか？\n(データは即時削除されず、日曜日の一括調整時に管理者が削除を確定します)')) {
+            if (confirm('本当にこの予約のキャンセル申請を調整者に送信しますか？\n(データは即時削除されず、管理者が処理を確定します)')) {
                 try {
                     const docRef = doc(db, "reservations", docId);
                     await updateDoc(docRef, {
