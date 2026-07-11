@@ -375,22 +375,25 @@
 
         .capture-mode .cell { min-height: 55px !important; }
         
-        /* 画像保存時専用のスタイル（背景枠を消して、エクセル風の黒文字にする） */
+/* 画像保存時専用のスタイル（背景枠を消して、エクセル風の黒文字にする） */
         .capture-mode .admin-tag { 
-            padding: 4px; 
+            padding: 2px; 
             border: none !important; 
             box-shadow: none !important; 
             animation: none !important; 
             opacity: 1 !important; 
             background: transparent !important; 
-            font-size: 1.3em; 
+            font-size: 1.15em; /* ★大きすぎた文字を枠に収まるよう微調整 */
             width: 100%;
+            box-sizing: border-box;
         }
         .capture-mode .tag-title {
             font-weight: 900; 
             color: #333 !important; 
-            white-space: normal; 
+            white-space: normal !important; /* ★強制的に折り返しを有効にする */
+            word-break: break-all !important; /* ★長い英数字でもマスの端で強制改行する */
             text-align: center; 
+            line-height: 1.1; /* ★改行した時の行間を少し詰めてスッキリ見せる */
         }
         .capture-mode .cell {
             align-items: center;
