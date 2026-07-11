@@ -397,9 +397,10 @@
         .capture-mode .tag-title {
             font-weight: 900; 
             color: #333 !important; 
-            white-space: nowrap !important; /* ★改行を数学的に禁止（1行に固定） */
-            font-size: 0.9em; /* ★セル幅 W_c に収束するようにスカラー値を縮小 */
-            overflow: hidden; /* 万が一はみ出した部分は非表示にしてレイアウトを保護 */
+            white-space: normal !important; /* ★改行を許可 */
+            word-break: break-all !important; /* ★長い英数字（cist_keion等）もマス端で強制改行 */
+            font-size: 1.2em; /* ★文字サイズを大幅に大きく設定 */
+            line-height: 1.1; /* ★改行時の行間を詰めてスッキリ見せる */
             text-align: center; 
         }
         
