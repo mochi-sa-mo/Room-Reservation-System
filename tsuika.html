@@ -197,7 +197,7 @@
 <body>
 
     <header>
-        <h1>部室追加予約 (今週分の即時確定)</h1>
+        <h1>部室追加予約 (今週分の希望提出)</h1>
         <div>
             <span>現在のロール: <strong id="current-role">ユーザ</strong></span>
             <div>
@@ -214,12 +214,12 @@
         </div>
 
         <div class="form-section">
-            <h2 style="margin-top: 0; font-size: 1.1em; color: #2e7d32;">追加予約の確定</h2>
-            <p style="font-size: 0.8em; color: #666; margin-top: -10px;">※管理者の承認なしで即時確定されます。</p>
+            <h2 style="margin-top: 0; font-size: 1.1em; color: #2e7d32;">追加予約の希望提出</h2>
+            <p style="font-size: 0.8em; color: #666; margin-top: -10px;">※管理者の承認後に確定されます。</p>
             
             <label style="font-weight: bold; font-size: 0.9em; display:block; margin-bottom:4px;">選択中のスロット</label>
             <div class="selected-list" id="selected-display">
-                選択されていません（白い空き枠を選んでください）
+                選択されていません（クリックして枠を選んでください）
             </div>
             
             <div class="form-group">
@@ -232,7 +232,7 @@
                 <textarea id="notes" placeholder="未記入でもOK"></textarea>
             </div>
             
-            <button class="btn btn-success btn-submit" id="btn-submit-req">即時確定する</button>
+            <button class="btn btn-success btn-submit" id="btn-submit-req">追加希望を送信する</button>
         </div>
     </div>
 
@@ -306,7 +306,6 @@
                 dbConfirmedReservations = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // 今週の日付リストに含まれているデータを抽出
                     if (currentWeekDates.includes(data.date) && data.deleted !== true) {
                         dbConfirmedReservations.push(data);
                     }
@@ -352,24 +351,36 @@
                     const targetDate = currentWeekDates[dIndex];
                     const cellRes = dbConfirmedReservations.filter(r => r.date === targetDate && r.period === pIndex);
                     
+                    // ★数理モデルの適用：ブロックすべき「通常の有効予約」を抽出
+                    const blockingRes = cellRes.filter(r => r.isAdditional === false && r.cancelRequested === false && r.rejected !== true);
+
                     // ブロックされている場合
                     if (isAdminDisabled) {
                         cell.classList.add('admin-disabled');
                         cell.textContent = '予約不可';
                     } 
-                    // 既に何らかの予約が存在する場合（追加予約不可）
-                    else if (cellRes.length > 0) {
+                    // 通常の確定/保留中予約が存在する場合（追加予約不可）
+                    else if (blockingRes.length > 0) {
                         cell.classList.add('has-existing');
-                        cellRes.forEach(res => {
+                        blockingRes.forEach(res => {
                             const tag = document.createElement('div');
                             tag.className = 'faint-band-tag';
-                            tag.textContent = '埋まっています'; // 他の人のバンド名は見せない/または「埋まっています」とだけ表示
+                            tag.textContent = '埋まっています'; 
                             cell.appendChild(tag);
                         });
                     } 
-                    // 完全な空き枠の場合（追加予約可能）
+                    // 空枠、または追加予約・取消申請のみの場合（追加予約可能）
                     else {
                         cell.classList.add('available');
+
+                        // 重複している追加希望などを視覚的に薄く表示しておく
+                        cellRes.filter(r => r.rejected !== true).forEach(res => {
+                            const tag = document.createElement('div');
+                            tag.className = 'faint-band-tag';
+                            tag.textContent = res.cancelRequested ? '取消申請あり' : '他バンドが希望中'; 
+                            cell.appendChild(tag);
+                        });
+
                         const isSelected = selectedSlots.some(s => s.day === dIndex && s.period === pIndex);
                         if (isSelected) {
                             cell.classList.add('selected');
@@ -404,7 +415,7 @@
         function updateSelectedDisplay() {
             const display = document.getElementById('selected-display');
             if (selectedSlots.length === 0) {
-                display.textContent = '選択されていません（白い空き枠を選んでください）';
+                display.textContent = '選択されていません（クリックして枠を選んでください）';
                 display.style.color = '#555';
             } else {
                 display.innerHTML = selectedSlots.map(s => `<strong>${s.text}</strong>`).join(', ');
@@ -433,9 +444,10 @@
                         period: slot.period,
                         bandName: bandName,
                         notes: notes,
-                        confirmed: true,        // ★最初から確定状態
+                        confirmed: false,       // ★保留中（希望提出）に変更
                         cancelRequested: false,
                         isAdditional: true,     // ★追加予約フラグ
+                        rejected: false,        // ★新ステータス
                         deleted: false,         
                         createdAt: new Date().toISOString()
                     });
@@ -449,10 +461,10 @@
                     opType: "create",
                     bandName: bandName,
                     slot: selectedSlots.map(s => s.text).join(', '),
-                    detail: "【追加予約】 一般ユーザーが空き枠を即時確定しました"
+                    detail: "【追加予約】 一般ユーザーが空き枠へ追加希望を送信しました"
                 });
 
-                alert(`【確定完了】\n${bandName} の追加予約を ${selectedSlots.length} 件確定しました。\nカレンダーに緑色で反映されます。`);
+                alert(`【送信完了】\n${bandName} の追加予約希望を ${selectedSlots.length} 件送信しました。\n管理者の承認をお待ちください。`);
                 
                 selectedSlots = [];
                 window.location.href = 'index.html';
