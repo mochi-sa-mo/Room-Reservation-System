@@ -17,11 +17,44 @@
         .error-message { color: #d0021b; font-size: 0.85em; margin-bottom: 15px; text-align: center; display: none; }
         
         /* メンテナンス表示用（黄色） */
-        .maintenance-alert { background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9em; display: none; white-space: pre-wrap; word-wrap: break-word; }
+        .maintenance-alert { 
+            box-sizing: border-box; /* ★はみ出し防止 */
+            width: 100%; 
+            background-color: #fff3cd; 
+            border: 1px solid #ffeeba; 
+            color: #856404; 
+            padding: 15px; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+            font-size: 0.9em; 
+            display: none; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+        }
         
         /* ★お知らせ表示用（水色） */
-        .notice-alert { background-color: #e3f2fd; border: 1px solid #b6d4fe; color: #004085; padding: 15px; border-radius: 4px; margin-bottom: 20px; font-size: 0.9em; display: none; white-space: pre-wrap; word-wrap: break-word; }
-        /* .notice-alert h3 { margin-top: 0; margin-bottom: 8px; font-size: 1.05em; color: #004085; border-bottom: 1px solid #b6d4fe; padding-bottom: 4px; } */
+        .notice-alert { 
+            box-sizing: border-box; /* ★はみ出し防止 */
+            width: 100%; 
+            background-color: #e3f2fd; 
+            border: 1px solid #b6d4fe; 
+            color: #004085; 
+            padding: 15px; 
+            border-radius: 4px; 
+            margin-bottom: 20px; 
+            font-size: 0.9em; 
+            display: none; 
+            white-space: pre-wrap; 
+            word-wrap: break-word; 
+        }
+        .notice-alert h3 { 
+            margin-top: 0; 
+            margin-bottom: 8px; 
+            font-size: 1.05em; 
+            color: #004085; 
+            border-bottom: 1px solid #b6d4fe; 
+            padding-bottom: 4px; 
+        }
     </style>
 </head>
 <body>
