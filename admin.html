@@ -362,28 +362,24 @@
             display: none !important; 
         }
 
-        /* ★① 境界切断エラーの回避：定義域をテーブルの実体幅(max-content)まで強制拡張 */
         #capture-area.capture-mode {
             width: max-content !important;
             padding: 20px !important;
-            min-width: 850px; /* 7日間が物理的に収まる最小幅の保証 */
+            min-width: 850px; 
         }
         .capture-mode .schedule-container {
-            overflow: visible !important; /* スクロール枠を解除し、全体を露出させる */
+            overflow: visible !important; 
         }
 
-        /* ★画像保存時、確定(.confirmed)以外のタグをすべて非表示 */
         .capture-mode .admin-tag:not(.confirmed) {
             display: none !important;
         }
-        /* ★画像保存時、[確] などの付加文字を非表示 */
         .capture-mode .status-suffix {
             display: none !important;
         }
 
         .capture-mode .cell { min-height: 55px !important; }
         
-        /* ★② 文字列の1行収束条件の適用 */
         .capture-mode .admin-tag { 
             padding: 2px; 
             border: none !important; 
@@ -397,10 +393,10 @@
         .capture-mode .tag-title {
             font-weight: 900; 
             color: #333 !important; 
-            white-space: normal !important; /* ★改行を許可 */
-            word-break: break-all !important; /* ★長い英数字（cist_keion等）もマス端で強制改行 */
-            font-size: 1.2em; /* ★文字サイズを大幅に大きく設定 */
-            line-height: 1.1; /* ★改行時の行間を詰めてスッキリ見せる */
+            white-space: normal !important; 
+            word-break: break-all !important; 
+            font-size: 1.2em; 
+            line-height: 1.1; 
             text-align: center; 
         }
         
@@ -414,7 +410,7 @@
         }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
-        .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 380px; max-height: 90vh; overflow-y: auto; }
+        .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
 
         @media (max-width: 768px) {
@@ -479,7 +475,6 @@
                 <button class="btn" id="btn-download-img" style="background:#28a745;">📸 LINE共有用画像をダウンロード</button>
             </div>
             
-            <!-- ★今週と来週の切り替えコントローラーを新設 -->
             <div class="week-controller">
                 <button class="btn btn-nav" id="btn-admin-prev" style="display: block;">← 今週</button>
                 <span style="font-size:1.2em; font-weight:bold; min-width:100px; text-align:center;" id="admin-week-title">来週</span>
@@ -496,6 +491,7 @@
         </div>
     </div>
 
+    <!-- ★編集用モーダルの拡張 -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
             <h3 style="margin-top:0;">登録内容の編集</h3>
@@ -517,9 +513,10 @@
         let dbAnnouncements = [];
         let dbReservations = [];
         let dbDisabledSlots = [];
-        let currentEditingId = null;
         
-        // ★管理画面の初期値は「来週(1)」
+        let currentEditingId = null;
+        let currentEditingType = null; // ★編集中のタイプ（event/deadline）を保持
+        
         let currentWeekOffset = 1; 
 
         function getTodayStr() {
@@ -527,7 +524,6 @@
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         }
 
-        // --- 絶対日付を計算する関数 ---
         function getWeekDates(offset) {
             const now = new Date();
             const sunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + (offset * 7));
@@ -556,7 +552,6 @@
             document.getElementById('btn-edit-cancel').onclick = closeEditModal;
             document.getElementById('btn-edit-save').onclick = saveEditedData;
 
-            // ★週切替ボタンのアクション
             document.getElementById('btn-admin-prev').onclick = () => changeWeek(0);
             document.getElementById('btn-admin-next').onclick = () => changeWeek(1);
 
@@ -592,13 +587,11 @@
 
             onSnapshot(collection(db, "reservations"), (snapshot) => {
                 dbReservations = [];
-                // ★今週と来週の両方のリストを取得しておく
                 const thisWeekDates = getWeekDates(0);
                 const nextWeekDates = getWeekDates(1);
                 
                 snapshot.forEach(doc => {
                     const data = doc.data();
-                    // 削除されておらず、今週か来週のデータであれば保存
                     if ((thisWeekDates.includes(data.date) || nextWeekDates.includes(data.date)) && data.deleted !== true) {
                         dbReservations.push({ id: doc.id, ...data });
                     }
@@ -615,7 +608,6 @@
             });
         }
 
-        // 案内登録・削除などは既存のまま省略せず記載
         async function submitAnnouncement(event, type) {
             event.preventDefault();
             const prefix = type === 'event' ? 'e' : 'd';
@@ -703,24 +695,77 @@
             }
         }
 
+        // ★編集モーダルの項目をタイプ別に動的生成する
         function openEditModal(item) {
             currentEditingId = item.id;
+            currentEditingType = item.type;
             const body = document.getElementById('modal-form-body');
-            body.innerHTML = `
-                <div class="form-group"><label>件名 *</label><input type="text" id="edit-title" value="${item.title}"></div>
-                <div class="form-group"><label>非表示日時 *</label><input type="datetime-local" id="edit-expire" value="${item.expire}"></div>
+            
+            // 既存の非表示日時から日付(YYYY-MM-DD)だけを抽出
+            const expireDateOnly = item.expire ? item.expire.split('T')[0] : '';
+            
+            let html = `
+                <div class="form-group"><label>件名 *</label><input type="text" id="edit-title" value="${item.title || ''}"></div>
+                <div class="form-group"><label>日時</label><input type="text" id="edit-date" value="${item.date || ''}"></div>
             `;
+
+            if (item.type === 'event') {
+                html += `
+                    <div class="form-group"><label>場所</label><input type="text" id="edit-location" value="${item.location || ''}"></div>
+                    <div class="form-group"><label>タイムスケジュール</label><textarea id="edit-schedule">${item.schedule || ''}</textarea></div>
+                `;
+            } else if (item.type === 'deadline') {
+                html += `
+                    <div class="form-group"><label>提出先</label><input type="text" id="edit-sub" value="${item.submissionTo || ''}"></div>
+                `;
+            }
+
+            html += `
+                <div class="form-group"><label>リンク</label><input type="url" id="edit-link" value="${item.link || ''}"></div>
+                <div class="form-group"><label>備考</label><textarea id="edit-notes">${item.notes || ''}</textarea></div>
+                <div class="form-group"><label>非表示日 (時間は23:59固定) *</label><input type="date" id="edit-expire-date" value="${expireDateOnly}"></div>
+            `;
+            
+            body.innerHTML = html;
             document.getElementById('edit-modal').style.display = 'flex';
             document.body.classList.add('modal-open');
         }
-        function closeEditModal() { document.getElementById('edit-modal').style.display = 'none'; document.body.classList.remove('modal-open'); currentEditingId = null; }
+
+        function closeEditModal() { 
+            document.getElementById('edit-modal').style.display = 'none'; 
+            document.body.classList.remove('modal-open'); 
+            currentEditingId = null; 
+            currentEditingType = null;
+        }
         
+        // ★保存時に全項目を収集し、時間を23:59に固定してデータベースへ送信
         async function saveEditedData() {
             const title = document.getElementById('edit-title').value.trim();
-            const expire = document.getElementById('edit-expire').value;
-            if (!title || !expire) return alert('必須です');
+            const expireDateStr = document.getElementById('edit-expire-date').value;
+            
+            if (!title || !expireDateStr) return alert('件名と非表示日は必須です');
+            
+            // 時間を 23:59 に固定結合
+            const expire = expireDateStr + "T23:59";
+            
+            const updateData = {
+                title: title,
+                date: document.getElementById('edit-date').value.trim(),
+                link: document.getElementById('edit-link').value.trim(),
+                notes: document.getElementById('edit-notes').value.trim(),
+                expire: expire
+            };
+
+            // タイプに応じた差分データを収集
+            if (currentEditingType === 'event') {
+                updateData.location = document.getElementById('edit-location').value.trim();
+                updateData.schedule = document.getElementById('edit-schedule').value.trim();
+            } else if (currentEditingType === 'deadline') {
+                updateData.submissionTo = document.getElementById('edit-sub').value.trim();
+            }
+
             try {
-                await updateDoc(doc(db, "announcements", currentEditingId), { title: title, expire: expire });
+                await updateDoc(doc(db, "announcements", currentEditingId), updateData);
                 await addDoc(collection(db, "logs"), {
                     timestamp: new Date().toISOString(),
                     category: "announcement",
@@ -731,7 +776,10 @@
                 });
                 closeEditModal();
                 alert('変更を保存しました。');
-            } catch (error) { console.error(error); alert('保存に失敗しました。'); }
+            } catch (error) { 
+                console.error(error); 
+                alert('保存に失敗しました。'); 
+            }
         }
 
         async function toggleColumnBlock(dIndex) {
@@ -751,7 +799,6 @@
             await setDoc(slotRef, { day: dIndex, period: pIndex, blocked: !currentBlockedState });
         }
 
-        // 時間割調整グリッド描画（絶対日付ベースに改修）
         function renderAdminGrid() {
             const grid = document.getElementById('admin-grid'); grid.innerHTML = '';
             const emptyCell = document.createElement('div'); emptyCell.className = 'header-cell'; grid.appendChild(emptyCell);
@@ -786,25 +833,22 @@
 
                     const blockedText = document.createElement('div'); blockedText.className = 'cell-blocked-text'; blockedText.textContent = '予約不可'; cell.appendChild(blockedText);
 
-                    // ★現在表示中の週の日付でフィルタリング
                     const targetDate = activeDates[dIndex];
                     const cellRes = dbReservations.filter(r => r.date === targetDate && r.period === pIndex);
                     
                     cellRes.forEach(res => {
                         const tag = document.createElement('div');
                         
-                        // ★状態に応じたCSSクラスの付与（優先順位を数学的に補正）
                         let statusClass = '';
                         if (res.rejected) statusClass = 'rejected';
                         else if (res.cancelRequested) statusClass = 'has-alert';
-                        else if (res.confirmed) statusClass = 'confirmed';      // ★先に「確定（青）」を判定
-                        else if (res.isAdditional) statusClass = 'additional'; // ★確定していない追加予約のみ「緑（保留）」
+                        else if (res.confirmed) statusClass = 'confirmed';      
+                        else if (res.isAdditional) statusClass = 'additional'; 
                         
                         tag.className = `admin-tag ${statusClass}`;
                         
                         const titleSpan = document.createElement('div'); titleSpan.className = 'tag-title';
                         
-                        // ★文字列を分離してスパンに包む（画像出力時に非表示にするため）
                         const nameSpan = document.createElement('span'); 
                         nameSpan.textContent = res.bandName;
                         
@@ -833,7 +877,6 @@
                         const ops = document.createElement('div'); ops.className = 'tag-ops';
                         
                         if (res.cancelRequested) {
-                            // キャンセル申請が来ている場合
                             const btnReject = document.createElement('button'); btnReject.className = 'btn-tag-reject'; btnReject.textContent = '却下';
                             btnReject.onclick = async (e) => { 
                                 e.stopPropagation(); 
@@ -848,7 +891,6 @@
                             };
                             ops.appendChild(btnReject);
                         } else if (res.rejected) {
-                            // 既に落選（グレーアウト）している場合
                             const btnRestore = document.createElement('button'); btnRestore.textContent = '復元';
                             btnRestore.onclick = async (e) => { 
                                 e.stopPropagation(); 
@@ -863,7 +905,6 @@
                             };
                             ops.appendChild(btnRestore);
                         } else {
-                            // 通常の予約の場合（却下・確定ボタンを表示）
                             const btnReject = document.createElement('button'); btnReject.className = 'btn-tag-reject'; btnReject.textContent = '却下';
                             btnReject.onclick = async (e) => { 
                                 e.stopPropagation(); 
@@ -894,7 +935,6 @@
                             ops.appendChild(btnState);
                         }
 
-                        // 完全削除ボタンは常に表示
                         const btnDel = document.createElement('button'); btnDel.className = 'btn-tag-del'; btnDel.textContent = '削';
                         btnDel.onclick = async (e) => {
                             e.stopPropagation();
