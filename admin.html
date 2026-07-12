@@ -430,7 +430,7 @@
     <div class="admin-layout">
         
         <div class="dashboard-section">
-            <div class="section-title">📢 告知・締め切りの一括管理</div>
+            <div class="section-title">📢 告知・締め切りの一括管理（未入力でもOK）</div>
             <div class="announcement-dashboard">
                 <div class="announcement-form-box">
                     <div class="tabs">
@@ -438,7 +438,7 @@
                         <div class="tab" id="tab-deadline">締め切り登録</div>
                     </div>
                     <form id="form-event" class="form-panel active">
-                        <div class="form-group"><label>件名<span class="required-badge">*</span></label><input type="text" id="e-title" placeholder="例: NALライブ"></div>
+                        <div class="form-group"><label>件名<span class="required-badge">*</span></label><input type="text" id="e-title" placeholder="例: ○○LIVEについて"></div>
                         <div class="form-group"><label>日時</label><input type="text" id="e-date" placeholder="例: 1月1日"></div>
                         <div class="form-group"><label>場所</label><input type="text" id="e-location" placeholder="例: 場所"></div>
                         <div class="form-group"><label>タイムスケジュール</label><textarea id="e-schedule"></textarea></div>
@@ -723,7 +723,7 @@
             html += `
                 <div class="form-group"><label>リンク</label><input type="url" id="edit-link" value="${item.link || ''}"></div>
                 <div class="form-group"><label>備考</label><textarea id="edit-notes">${item.notes || ''}</textarea></div>
-                <div class="form-group"><label>非表示日 (時間は23:59固定) *</label><input type="date" id="edit-expire-date" value="${expireDateOnly}"></div>
+                <div class="form-group"><label>非表示日 (時間を23:59固定します) *</label><input type="date" id="edit-expire-date" value="${expireDateOnly}"></div>
             `;
             
             body.innerHTML = html;
@@ -856,9 +856,9 @@
                         statusSpan.className = 'status-suffix';
                         
                         let statusText = '';
-                        if (res.rejected) statusText = ' [落選]';
-                        else if (res.cancelRequested) statusText = ' [⚠️取消]';
-                        else if (res.confirmed) statusText = ' [確]';      
+                        if (res.rejected) statusText = ' [非設定]';
+                        else if (res.cancelRequested) statusText = ' [⚠️取消申請届]';
+                        else if (res.confirmed) statusText = ' [確定]';      
                         else if (res.isAdditional) statusText = ' [追加]';
 
                         statusSpan.textContent = statusText;
