@@ -439,21 +439,21 @@
                     </div>
                     <form id="form-event" class="form-panel active">
                         <div class="form-group"><label>件名<span class="required-badge">*</span></label><input type="text" id="e-title" placeholder="例: ○○LIVEについて"></div>
-                        <div class="form-group"><label>日時</label><input type="text" id="e-date" placeholder="例: 1月1日"></div>
+                        <div class="form-group"><label>日時</label><input type="datetime-local" id="e-date" placeholder="例: 1月1日"></div>
                         <div class="form-group"><label>場所</label><input type="text" id="e-location" placeholder="例: 場所"></div>
                         <div class="form-group"><label>タイムスケジュール</label><textarea id="e-schedule"></textarea></div>
                         <div class="form-group"><label>リンク</label><input type="url" id="e-link" placeholder="ここにURLを貼ると、閲覧者が押してそのURLに遷移するようにできます。"></div>
                         <div class="form-group"><label>備考</label><textarea id="e-notes"></textarea></div>
-                        <div class="form-group"><label>非表示日時<span class="required-badge">*</span></label><input type="datetime-local" id="e-expire"></div>
+                        <div class="form-group"><label>非表示日時<span class="required-badge">*</span></label><input type="date" id="e-expire"></div>
                         <button type="submit" class="btn">即時公開する</button>
                     </form>
                     <form id="form-deadline" class="form-panel">
                         <div class="form-group"><label>件名<span class="required-badge">*</span></label><input type="text" id="d-title" placeholder="例: ○○ＬＩＶＥの出演希望"></div>
-                        <div class="form-group"><label>日時</label><input type="text" id="d-date" placeholder="例: 1月1日まで"></div>
+                        <div class="form-group"><label>日時</label><input type="datetime-local" id="d-date" placeholder="例: 1月1日まで"></div>
                         <div class="form-group"><label>提出先</label><input type="text" id="d-sub" placeholder="例: ○○のＬＩＮＥまで"></div>
                         <div class="form-group"><label>リンク</label><input type="url" id="d-link" placeholder="ここにURLを貼ると、閲覧者が押してそのURLに遷移するようにできます。"></div>
                         <div class="form-group"><label>備考</label><textarea id="d-notes"></textarea></div>
-                        <div class="form-group"><label>非表示日時<span class="required-badge">*</span></label><input type="datetime-local" id="d-expire"></div>
+                        <div class="form-group"><label>非表示日時<span class="required-badge">*</span></label><input type="date" id="d-expire"></div>
                         <button type="submit" class="btn">即時公開する</button>
                     </form>
                 </div>
@@ -612,9 +612,11 @@
             event.preventDefault();
             const prefix = type === 'event' ? 'e' : 'd';
             const title = document.getElementById(`${prefix}-title`).value.trim();
-            const expire = document.getElementById(`${prefix}-expire`).value;
+            const expireDate = document.getElementById(`${prefix}-expire`).value;
 
-            if (!title || !expire) return alert('必須項目を入力してください。');
+            if (!title || !expireDate) return alert('必須項目を入力してください。');
+
+            const expire = expireDate + "T23:59";
 
             const data = {
                 type: type,
@@ -706,7 +708,7 @@
             
             let html = `
                 <div class="form-group"><label>件名 *</label><input type="text" id="edit-title" value="${item.title || ''}"></div>
-                <div class="form-group"><label>日時</label><input type="text" id="edit-date" value="${item.date || ''}"></div>
+                <div class="form-group"><label>日時</label><input type="datetime-local" id="edit-date" value="${item.date || ''}"></div>
             `;
 
             if (item.type === 'event') {
@@ -723,7 +725,7 @@
             html += `
                 <div class="form-group"><label>リンク</label><input type="url" id="edit-link" value="${item.link || ''}"></div>
                 <div class="form-group"><label>備考</label><textarea id="edit-notes">${item.notes || ''}</textarea></div>
-                <div class="form-group"><label>非表示日 (時間を23:59固定します) *</label><input type="date" id="edit-expire-date" value="${expireDateOnly}"></div>
+                <div class="form-group"><label>非表示日 (時間は23:59固定) *</label><input type="date" id="edit-expire-date" value="${expireDateOnly}"></div>
             `;
             
             body.innerHTML = html;
@@ -856,9 +858,9 @@
                         statusSpan.className = 'status-suffix';
                         
                         let statusText = '';
-                        if (res.rejected) statusText = ' [非設定]';
-                        else if (res.cancelRequested) statusText = ' [⚠️取消申請届]';
-                        else if (res.confirmed) statusText = ' [確定]';      
+                        if (res.rejected) statusText = ' [落選]';
+                        else if (res.cancelRequested) statusText = ' [⚠️取消]';
+                        else if (res.confirmed) statusText = ' [確]';      
                         else if (res.isAdditional) statusText = ' [追加]';
 
                         statusSpan.textContent = statusText;
