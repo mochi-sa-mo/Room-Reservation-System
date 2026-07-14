@@ -81,10 +81,9 @@
             box-sizing: border-box;
         }
         .cell.available:hover {
-            background-color: #e8f5e9; /* 空き枠のホバーは薄い緑 */
+            background-color: #e8f5e9;
         }
 
-        /* 埋まっている枠のスタイル */
         .cell.has-existing {
             background-color: var(--existing-bg);
             cursor: not-allowed;
@@ -126,7 +125,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: sticky;
             top: 20px;
-            border-top: 5px solid var(--success-color); /* 追加枠であることを強調 */
+            border-top: 5px solid var(--success-color);
         }
         .form-group {
             margin-bottom: 15px;
@@ -252,7 +251,6 @@
         let dbConfirmedReservations = [];
         let dbDisabledSlots = [];
 
-        // --- 絶対日付の計算（今週分） ---
         function getTodayStr() {
             const now = new Date();
             return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -269,9 +267,8 @@
             return dates;
         }
 
-        const currentWeekDates = getWeekDates(0); // tsuika.html は常に「今週」を扱う
+        const currentWeekDates = getWeekDates(0); 
         const todayStr = getTodayStr();
-        // --------------------------------
 
         window.onload = function() {
             if (role) {
@@ -351,15 +348,15 @@
                     const targetDate = currentWeekDates[dIndex];
                     const cellRes = dbConfirmedReservations.filter(r => r.date === targetDate && r.period === pIndex);
                     
-                    // ★数理モデルの適用：ブロックすべき「通常の有効予約」を抽出
-                    const blockingRes = cellRes.filter(r => r.isAdditional === false && r.cancelRequested === false && r.rejected !== true);
+                    // ★数理モデルの適用：ブロックすべき「確定済みでキャンセル申請されていない有効な予約」を抽出
+                    const blockingRes = cellRes.filter(r => r.confirmed === true && r.cancelRequested === false && r.rejected !== true);
 
                     // ブロックされている場合
                     if (isAdminDisabled) {
                         cell.classList.add('admin-disabled');
                         cell.textContent = '予約不可';
                     } 
-                    // 通常の確定/保留中予約が存在する場合（追加予約不可）
+                    // 確定予約が存在する場合（追加予約不可）
                     else if (blockingRes.length > 0) {
                         cell.classList.add('has-existing');
                         blockingRes.forEach(res => {
@@ -369,7 +366,7 @@
                             cell.appendChild(tag);
                         });
                     } 
-                    // 空枠、または追加予約・取消申請のみの場合（追加予約可能）
+                    // 空枠、または保留・取消申請のみの場合（追加予約可能）
                     else {
                         cell.classList.add('available');
 
@@ -444,7 +441,7 @@
                         period: slot.period,
                         bandName: bandName,
                         notes: notes,
-                        confirmed: false,       // ★保留中（希望提出）に変更
+                        confirmed: false,       // ★保留中（希望提出）
                         cancelRequested: false,
                         isAdditional: true,     // ★追加予約フラグ
                         rejected: false,        // ★新ステータス
