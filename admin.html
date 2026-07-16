@@ -175,6 +175,8 @@
             flex-direction: column;
             gap: 4px;
             box-sizing: border-box;
+            min-width: 0; /* 追加: グリッドの幅を突き破らないようにする魔法のコード */
+            overflow: hidden; /* 追加: はみ出しを完全に防ぐ */
         }
         .cell.admin-blocked {
             background-color: var(--disabled-color);
@@ -215,6 +217,8 @@
             flex-direction: column;
             gap: 2px;
             box-sizing: border-box;
+            width: 100%; /* 追加: 親要素の幅にぴったり合わせる */
+            overflow: hidden; /* 追加: 子要素のはみ出しを隠す */
         }
         .admin-tag.confirmed {
             background: var(--primary-color);
@@ -285,6 +289,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            width: 100%; /* 追加: 長いテキストを幅100%で切り捨てる基準を作る */
+            display: block; /* 追加: span要素などを正しく省略させるため */
         }
         .tag-ops {
             display: flex;
