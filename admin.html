@@ -149,6 +149,13 @@
             background: #fff;
             padding: 10px;
             overflow-x: auto;
+            /* ここから追加：Firefox, IE, Edge用 */
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* ここから追加：Chrome, Safari, Opera用 */
+        .schedule-container::-webkit-scrollbar {
+            display: none;
         }
         #capture-area {
             padding: 15px;
