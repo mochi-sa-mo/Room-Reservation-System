@@ -58,37 +58,34 @@
             margin-bottom: 15px;
         }
         
-        /* リストのデフォルト装飾をリセット */
         #event-list, #deadline-list {
             list-style: none;
             padding: 0;
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 12px; /* カード同士の隙間 */
+            gap: 12px; 
         }
 
-        /* ★変更箇所: 完全にカード風のデザインにアップグレード */
         .clickable-announcement {
             cursor: pointer;
             padding: 16px;
             background-color: #fff;
             border: 1px solid #e0e0e0;
-            border-radius: 12px; /* 画像のように角を丸く */
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05); /* 軽い影をつける */
+            border-radius: 12px; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); 
             transition: all 0.2s ease;
             display: flex;
             flex-direction: column;
-            gap: 8px; /* ラベルとテキストの隙間 */
+            gap: 8px; 
         }
 
         .clickable-announcement:hover {
-            box-shadow: 0 6px 16px rgba(0,0,0,0.1); /* ホバーで影を濃くして浮き上がらせる */
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1); 
             transform: translateY(-2px);
             border-color: var(--primary-color);
         }
 
-        /* ★追加箇所: ラベル（バッジ）用のスタイル */
         .badge-container {
             display: flex;
             gap: 8px;
@@ -98,24 +95,21 @@
         .badge {
             display: inline-block;
             padding: 4px 10px;
-            border-radius: 999px; /* ピル型（完全な丸み） */
+            border-radius: 999px; 
             font-size: 0.75em;
             font-weight: bold;
         }
 
-        /* 画像準拠のNEWラベル */
         .badge-new {
             background: #ffe8e8;
             color: #ff6b5e;
         }
 
-        /* 残り日数ラベル（オレンジ系） */
         .badge-deadline {
             background: #fff4e5;
             color: #ff9800;
         }
 
-        /* カード内のタイトルテキスト */
         .card-title {
             font-weight: 500;
             font-size: 1em;
@@ -440,7 +434,6 @@
             });
         }
 
-        // ★大幅変更箇所：お知らせと締め切りのレンダリング処理
         function renderAnnouncements() {
             const eventList = document.getElementById('event-list');
             const deadlineList = document.getElementById('deadline-list');
@@ -450,7 +443,6 @@
             let eventCount = 0;
             let deadlineCount = 0;
 
-            // 今日の日付を「0時0分0秒」で取得（日数計算のズレをなくすため）
             const now = new Date();
             const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -459,17 +451,14 @@
                     const li = document.createElement('li');
                     li.className = 'clickable-announcement';
                     
-                    // バッジ（ラベル）を格納するコンテナ
                     const badgeContainer = document.createElement('div');
                     badgeContainer.className = 'badge-container';
 
                     // --- 1. NEWラベルの判定（投稿から2日以内） ---
-                    // item.createdAt が存在する場合のみ計算
                     if (item.createdAt) {
                         const createdDate = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
                         const createdDay = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
                         
-                        // ミリ秒の差分を日に変換
                         const diffDaysNew = Math.floor((today - createdDay) / (1000 * 60 * 60 * 24));
                         
                         if (diffDaysNew >= 0 && diffDaysNew <= 2) {
@@ -480,34 +469,39 @@
                         }
                     }
 
-                    // --- 2. 残り日数ラベルの判定（期限が7日以内） ---
-                    if (item.type === 'deadline' && item.expire) {
-                        const expireDate = new Date(item.expire);
-                        const expireDay = new Date(expireDate.getFullYear(), expireDate.getMonth(), expireDate.getDate());
+                    // --- ★ 2. 残り日数ラベルの判定（dateフィールドを基準に変更） ---
+                    if (item.date) {
+                        const targetDate = new Date(item.date);
                         
-                        const diffDaysExpire = Math.ceil((expireDay - today) / (1000 * 60 * 60 * 24));
-                        
-                        if (diffDaysExpire >= 0 && diffDaysExpire <= 7) {
-                            const deadlineBadge = document.createElement('span');
-                            deadlineBadge.className = 'badge badge-deadline';
-                            deadlineBadge.textContent = diffDaysExpire === 0 ? '本日締め切り' : `残り${diffDaysExpire}日`;
-                            badgeContainer.appendChild(deadlineBadge);
+                        // 入力された文字が正しく日付として解釈できる場合のみ計算する
+                        if (!isNaN(targetDate.getTime())) {
+                            const targetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+                            const diffDays = Math.ceil((targetDay - today) / (1000 * 60 * 60 * 24));
+                            
+                            // 7日以内の場合にラベルを表示（イベント・締め切り両対応）
+                            if (diffDays >= 0 && diffDays <= 7) {
+                                const countdownBadge = document.createElement('span');
+                                countdownBadge.className = 'badge badge-deadline';
+                                
+                                if (diffDays === 0) {
+                                    countdownBadge.textContent = item.type === 'event' ? '本日開催' : '本日締め切り';
+                                } else {
+                                    countdownBadge.textContent = `残り${diffDays}日`;
+                                }
+                                badgeContainer.appendChild(countdownBadge);
+                            }
                         }
                     }
 
-                    // タイトル部分
                     const titleDiv = document.createElement('div');
                     titleDiv.className = 'card-title';
                     titleDiv.textContent = item.title;
 
-                    // バッジが存在する場合はカードに追加
                     if (badgeContainer.children.length > 0) {
                         li.appendChild(badgeContainer);
                     }
-                    // タイトルをカードに追加
                     li.appendChild(titleDiv);
                     
-                    // クリックイベントの設定
                     if (item.type === 'event') {
                         li.onclick = () => openDetailModal("📢 イベント詳細", item, 'event');
                         eventList.appendChild(li);
