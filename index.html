@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>部室予約システム - トップ</title>
 
-    <!-- ★追加箇所: 画面が描画される前に認証チェックを行い、未ログインなら即時リダイレクト -->
     <script>
         if (!localStorage.getItem('userRole')) {
             window.location.replace('login.html');
@@ -56,35 +55,73 @@
             margin-top: 0;
             color: #d0021b;
             font-size: 1.1em;
+            margin-bottom: 15px;
         }
         
-        /* ★ 変更箇所: リストのデフォルト装飾（黒丸とインデント）をリセット */
+        /* リストのデフォルト装飾をリセット */
         #event-list, #deadline-list {
             list-style: none;
             padding: 0;
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 10px; /* カード同士の隙間 */
+            gap: 12px; /* カード同士の隙間 */
         }
 
-        /* ★ 変更箇所: カード風のデザインに変更 */
+        /* ★変更箇所: 完全にカード風のデザインにアップグレード */
         .clickable-announcement {
             cursor: pointer;
-            padding: 12px 15px;
-            background-color: #f9f9f9;
+            padding: 16px;
+            background-color: #fff;
             border: 1px solid #e0e0e0;
-            border-radius: 6px;
+            border-radius: 12px; /* 画像のように角を丸く */
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05); /* 軽い影をつける */
             transition: all 0.2s ease;
-            font-weight: 500;
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* ラベルとテキストの隙間 */
         }
 
-        /* ★ 変更箇所: ホバー（タップ）時の反応 */
         .clickable-announcement:hover {
-            background-color: #f0f7ff; /* ほんのり青みがかった背景に */
+            box-shadow: 0 6px 16px rgba(0,0,0,0.1); /* ホバーで影を濃くして浮き上がらせる */
+            transform: translateY(-2px);
             border-color: var(--primary-color);
-            color: var(--primary-color);
-            box-shadow: 0 2px 4px rgba(74, 144, 226, 0.1);
+        }
+
+        /* ★追加箇所: ラベル（バッジ）用のスタイル */
+        .badge-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 999px; /* ピル型（完全な丸み） */
+            font-size: 0.75em;
+            font-weight: bold;
+        }
+
+        /* 画像準拠のNEWラベル */
+        .badge-new {
+            background: #ffe8e8;
+            color: #ff6b5e;
+        }
+
+        /* 残り日数ラベル（オレンジ系） */
+        .badge-deadline {
+            background: #fff4e5;
+            color: #ff9800;
+        }
+
+        /* カード内のタイトルテキスト */
+        .card-title {
+            font-weight: 500;
+            font-size: 1em;
+            color: #333;
+            margin: 0;
+            line-height: 1.4;
         }
 
         .week-controller {
@@ -129,7 +166,7 @@
         }
         
         .today-col {
-            background-color: #fffde7 !important; /* 薄いレモンイエロー */
+            background-color: #fffde7 !important;
         }
 
         .header-cell, .period-cell {
@@ -168,11 +205,9 @@
         .band-tag.pending {
             background-color: #f5a623;
         }
-        /* ★追加予約枠（希望提出中）用の緑色スタイル */
         .band-tag.additional {
             background-color: #4caf50;
         }
-        /* ★落選（却下）用のスタイル */
         .band-tag.rejected {
             background-color: #9e9e9e;
             text-decoration: line-through;
@@ -256,7 +291,6 @@
         .btn-warning:hover { background-color: #d48a17; }
         .btn-danger { background-color: #d0021b; }
         .btn-danger:hover { background-color: #a00215; }
-        /* 追加予約ボタン用のスタイル */
         .btn-success { background-color: #4caf50; color: white; }
         .btn-success:hover { background-color: #388e3c; }
         
@@ -286,11 +320,11 @@
 
     <div class="announcements">
         <div class="announcement-box">
-            <h3>📢 直近のイベント （タップして詳細を確認する）</h3>
+            <h3>📢 直近のイベント</h3>
             <ul id="event-list"></ul>
         </div>
         <div class="announcement-box">
-            <h3>⚠️ 直近の締め切り （タップして詳細を確認する）</h3>
+            <h3>⚠️ 直近の締め切り</h3>
             <ul id="deadline-list"></ul>
         </div>
     </div>
@@ -317,8 +351,6 @@
     </div>
 
     <script type="module">
-        // ★修正箇所: 画面描画前の <head> 内ですでにリダイレクトの判断は済んでいるため、
-        // ここでは画面表示（「ユーザ」「調整者」などの出し分け）に使う role の取得のみ行います。
         const role = localStorage.getItem('userRole');
         
         import { db } from "./firebase.js";
@@ -383,7 +415,7 @@
 
         function changeWeek(direction) {
             const newState = currentWeekOffset + direction;
-            if (newState < 0 || newState > 1) return; // 今週と来週のみ行き来可能
+            if (newState < 0 || newState > 1) return;
             currentWeekOffset = newState;
             document.getElementById('week-title').textContent = currentWeekOffset === 0 ? '今週' : '来週';
             updateWeekButtons(); 
@@ -408,6 +440,7 @@
             });
         }
 
+        // ★大幅変更箇所：お知らせと締め切りのレンダリング処理
         function renderAnnouncements() {
             const eventList = document.getElementById('event-list');
             const deadlineList = document.getElementById('deadline-list');
@@ -417,12 +450,64 @@
             let eventCount = 0;
             let deadlineCount = 0;
 
+            // 今日の日付を「0時0分0秒」で取得（日数計算のズレをなくすため）
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
             dbAnnouncements.forEach(item => {
                 if (item.expire && new Date(item.expire) > new Date() && item.deleted !== true) {
                     const li = document.createElement('li');
                     li.className = 'clickable-announcement';
-                    li.textContent = item.title;
                     
+                    // バッジ（ラベル）を格納するコンテナ
+                    const badgeContainer = document.createElement('div');
+                    badgeContainer.className = 'badge-container';
+
+                    // --- 1. NEWラベルの判定（投稿から2日以内） ---
+                    // item.createdAt が存在する場合のみ計算
+                    if (item.createdAt) {
+                        const createdDate = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
+                        const createdDay = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
+                        
+                        // ミリ秒の差分を日に変換
+                        const diffDaysNew = Math.floor((today - createdDay) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDaysNew >= 0 && diffDaysNew <= 2) {
+                            const newBadge = document.createElement('span');
+                            newBadge.className = 'badge badge-new';
+                            newBadge.textContent = 'NEW';
+                            badgeContainer.appendChild(newBadge);
+                        }
+                    }
+
+                    // --- 2. 残り日数ラベルの判定（期限が7日以内） ---
+                    if (item.type === 'deadline' && item.expire) {
+                        const expireDate = new Date(item.expire);
+                        const expireDay = new Date(expireDate.getFullYear(), expireDate.getMonth(), expireDate.getDate());
+                        
+                        const diffDaysExpire = Math.ceil((expireDay - today) / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDaysExpire >= 0 && diffDaysExpire <= 7) {
+                            const deadlineBadge = document.createElement('span');
+                            deadlineBadge.className = 'badge badge-deadline';
+                            deadlineBadge.textContent = diffDaysExpire === 0 ? '本日締め切り' : `残り${diffDaysExpire}日`;
+                            badgeContainer.appendChild(deadlineBadge);
+                        }
+                    }
+
+                    // タイトル部分
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'card-title';
+                    titleDiv.textContent = item.title;
+
+                    // バッジが存在する場合はカードに追加
+                    if (badgeContainer.children.length > 0) {
+                        li.appendChild(badgeContainer);
+                    }
+                    // タイトルをカードに追加
+                    li.appendChild(titleDiv);
+                    
+                    // クリックイベントの設定
                     if (item.type === 'event') {
                         li.onclick = () => openDetailModal("📢 イベント詳細", item, 'event');
                         eventList.appendChild(li);
@@ -435,16 +520,14 @@
                 }
             });
 
-            // ★変更箇所：連絡がない場合のマイナスマージンを削除し、パディングに変更
             if (eventCount === 0) {
-                eventList.innerHTML = '<li style="color: #888; padding: 10px;">連絡はありません</li>';
+                eventList.innerHTML = '<li style="color: #888; padding: 10px; border: none; background: transparent;">連絡はありません</li>';
             }
             if (deadlineCount === 0) {
-                deadlineList.innerHTML = '<li style="color: #888; padding: 10px;">連絡はありません</li>';
+                deadlineList.innerHTML = '<li style="color: #888; padding: 10px; border: none; background: transparent;">連絡はありません</li>';
             }
         }
 
-        // 時間割グリッドのレンダリング
         function renderGrid() {
             const grid = document.getElementById('schedule-grid');
             grid.innerHTML = '';
@@ -492,7 +575,6 @@
                         let statusClass = '';
                         let statusText = '';
                         
-                        // ★数理モデル S = {R, X, C, A} に基づく論理優先評価
                         if (res.rejected) {
                             statusClass = 'rejected';
                             statusText = ' (落選)';
@@ -500,7 +582,7 @@
                             statusClass = 'cancel-requested';
                             statusText = ' (取消申請中)';
                         } else if (res.confirmed) {
-                            statusClass = ''; // デフォルト青色
+                            statusClass = '';
                             statusText = '';
                         } else if (res.isAdditional) {
                             statusClass = 'additional';
@@ -559,7 +641,6 @@
                     { label: '状態', value: statusMsg }
                 ];
 
-                // ★キャンセル申請の条件を緩和：落選済み、または既に申請中でなければ許可
                 if (!data.cancelRequested && !data.rejected) {
                     const cancelBtn = document.createElement('button');
                     cancelBtn.className = 'btn btn-warning';
