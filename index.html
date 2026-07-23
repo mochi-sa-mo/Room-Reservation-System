@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>部室予約システム - トップ</title>
+
+    <!-- ★追加箇所: 画面が描画される前に認証チェックを行い、未ログインなら即時リダイレクト -->
+    <script>
+        if (!localStorage.getItem('userRole')) {
+            window.location.replace('login.html');
+        }
+    </script>
+
     <style>
         :root {
             --primary-color: #4A90E2;
@@ -278,11 +286,11 @@
 
     <div class="announcements">
         <div class="announcement-box">
-            <h3>📢 直近のイベント　（タップして詳細を確認する）</h3>
+            <h3>📢 直近のイベント （タップして詳細を確認する）</h3>
             <ul id="event-list"></ul>
         </div>
         <div class="announcement-box">
-            <h3>⚠️ 直近の締め切り　（タップして詳細を確認する）</h3>
+            <h3>⚠️ 直近の締め切り （タップして詳細を確認する）</h3>
             <ul id="deadline-list"></ul>
         </div>
     </div>
@@ -309,10 +317,9 @@
     </div>
 
     <script type="module">
+        // ★修正箇所: 画面描画前の <head> 内ですでにリダイレクトの判断は済んでいるため、
+        // ここでは画面表示（「ユーザ」「調整者」などの出し分け）に使う role の取得のみ行います。
         const role = localStorage.getItem('userRole');
-        if (!role) {
-            window.location.href = 'login.html';
-        }
         
         import { db } from "./firebase.js";
         import { collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
