@@ -16,45 +16,47 @@
         .btn:disabled { background-color: #ccc; cursor: not-allowed; }
         .error-message { color: #d0021b; font-size: 0.85em; margin-bottom: 15px; text-align: center; display: none; }
         
+        /* ★ 共通のカードスタイル（画像参考） */
+        .alert-card {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 20px; /* 余白を少し広げてカードっぽく */
+            border-radius: 16px; /* 角を大きく丸くする */
+            margin-bottom: 20px;
+            font-size: 0.9em;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .alert-card h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border-bottom: none; /* 下線を消してスッキリさせる */
+        }
+
+        .alert-card .alert-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         /* メンテナンス表示用（黄色） */
         .maintenance-alert { 
-            box-sizing: border-box; /* ★はみ出し防止 */
-            width: 100%; 
             background-color: #fff3cd; 
-            border: 1px solid #ffeeba; 
+            border: 2px solid #ffeeba; /* 枠線を2pxに強調 */
             color: #856404; 
-            padding: 15px; 
-            border-radius: 4px; 
-            margin-bottom: 20px; 
-            font-size: 0.9em; 
-            display: none; 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
         }
+        .maintenance-alert h3 { color: #856404; }
         
-        /* ★お知らせ表示用（水色） */
+        /* お知らせ表示用（水色） */
         .notice-alert { 
-            box-sizing: border-box; /* ★はみ出し防止 */
-            width: 100%; 
             background-color: #e3f2fd; 
-            border: 1px solid #b6d4fe; 
+            border: 2px solid #b6d4fe; /* 枠線を2pxに強調 */
             color: #004085; 
-            padding: 15px; 
-            border-radius: 4px; 
-            margin-bottom: 20px; 
-            font-size: 0.9em; 
-            display: none; 
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
         }
-        .notice-alert h3 { 
-            margin-top: 0; 
-            margin-bottom: 8px; 
-            font-size: 1.05em; 
-            color: #004085; 
-            border-bottom: 1px solid #b6d4fe; 
-            padding-bottom: 4px; 
-        }
+        .notice-alert h3 { color: #004085; }
+
     </style>
 </head>
 <body>
@@ -63,12 +65,15 @@
         <h1>部室予約システム</h1>
         
         <!-- メンテナンス時のメッセージ領域 -->
-        <div id="maintenance-alert" class="maintenance-alert"></div>
+        <div id="maintenance-alert" class="alert-card maintenance-alert">
+            <h3>⚠️ メンテナンス中です</h3>
+            <div id="maintenance-content" class="alert-content"></div>
+        </div>
 
-        <!-- ★お知らせのメッセージ領域 -->
-        <div id="notice-alert" class="notice-alert">
+        <!-- お知らせのメッセージ領域 -->
+        <div id="notice-alert" class="alert-card notice-alert">
             <h3>📢 お知らせ</h3>
-            <div id="notice-content"></div>
+            <div id="notice-content" class="alert-content"></div>
         </div>
 
         <div class="error-message" id="error-msg">IDまたはパスワードが間違っています。</div>
@@ -101,14 +106,15 @@
 
                 if (isMaintenanceMode) {
                     alertBox.style.display = 'block';
-                    alertBox.textContent = "⚠️ メンテナンス中です\n" + (data.message || "現在システムを利用できません。");
+                    // タイトルをh3タグで分離したため、テキストのみをコンテンツエリアに入れるように変更
+                    document.getElementById('maintenance-content').textContent = data.message || "現在システムを利用できません。";
                 } else {
                     alertBox.style.display = 'none';
                 }
             }
         });
 
-        // ★お知らせ状態のリアルタイム監視
+        // お知らせ状態のリアルタイム監視
         onSnapshot(doc(db, "systemSettings", "systemNotice"), (docSnap) => {
             if (docSnap.exists()) {
                 const data = docSnap.data();
