@@ -59,14 +59,14 @@
             min-width: 0;
         }
 
-        /* ★追加: 表の上の説明文などを1行で表示し、はみ出た部分はスクロールさせる */
+        /* 表の上の説明文などを1行で表示し、はみ出た部分はスクロールさせる */
         .calendar-section p, 
         .calendar-section span,
         .calendar-section .instruction {
             white-space: nowrap;
         }
 
-        /* ★追加: WebKit系(iPhone/Safari)で右端の余白が消えるバグを防ぐおまじない */
+        /* WebKit系(iPhone/Safari)で右端の余白が消えるバグを防ぐおまじない */
         .calendar-section::after {
             content: "";
             display: block;
@@ -83,7 +83,6 @@
             background-color: var(--border-color);
             border: 1px solid var(--border-color);
             width: 100%;
-            /* ★変更: 罫線切れを防ぐため、常に中身の最大幅に合わせて枠を描画する */
             min-width: max-content; 
         }
         .header-cell, .period-cell {
@@ -216,8 +215,12 @@
 
         @media (max-width: 768px) {
             body { padding: 10px; }
-            header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            header div { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+            /* ★修正: スマホ表示でも縦並びにならず1行(横並び)を維持 */
+            header { 
+                flex-direction: row; 
+                justify-content: space-between; 
+                align-items: center; 
+            }
             .main-container { flex-direction: column; gap: 15px; }
             .calendar-section, .form-section { width: 100%; flex: none; }
             .form-section { position: static; }
