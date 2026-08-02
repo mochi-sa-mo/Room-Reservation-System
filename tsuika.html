@@ -229,11 +229,7 @@
     <header>
         <h1>追加予約</h1>
         <div>
-            <span>現在のロール: <strong id="current-role">ユーザ</strong></span>
-            <div>
-                <button class="btn btn-back" id="btn-back-top">トップに戻る</button>
-                <button class="btn btn-danger" id="btn-logout" style="margin-left: 5px;">ログアウト</button>
-            </div>
+            <button class="btn btn-back" id="btn-back-top">トップに戻る</button>
         </div>
     </header>
 
@@ -302,24 +298,11 @@
         const todayStr = getTodayStr();
 
         window.onload = function() {
-            if (role) {
-                document.getElementById('current-role').textContent = 
-                    role === 'admin' ? '調整者' : (role === 'log' ? '閲覧者' : 'ユーザ');
-            }
-
             document.getElementById('btn-back-top').onclick = () => window.location.href = 'index.html';
-            document.getElementById('btn-logout').onclick = confirmLogout;
             document.getElementById('btn-submit-req').onclick = submitReservationRequest;
 
             startRealtimeSync();
         };
-
-        function confirmLogout() {
-            if (confirm('ログアウトしますか？')) {
-                localStorage.removeItem('userRole');
-                window.location.href = 'login.html';
-            }
-        }
 
         function startRealtimeSync() {
             onSnapshot(collection(db, "disabledSlots"), (snapshot) => {
@@ -379,15 +362,12 @@
                     const targetDate = currentWeekDates[dIndex];
                     const cellRes = dbConfirmedReservations.filter(r => r.date === targetDate && r.period === pIndex);
                     
-                    // ★数理モデルの適用：ブロックすべき「確定済みでキャンセル申請されていない有効な予約」を抽出
                     const blockingRes = cellRes.filter(r => r.confirmed === true && r.cancelRequested === false && r.rejected !== true);
 
-                    // ブロックされている場合
                     if (isAdminDisabled) {
                         cell.classList.add('admin-disabled');
                         cell.textContent = '予約不可';
                     } 
-                    // 確定予約が存在する場合（追加予約不可）
                     else if (blockingRes.length > 0) {
                         cell.classList.add('has-existing');
                         blockingRes.forEach(res => {
@@ -397,11 +377,9 @@
                             cell.appendChild(tag);
                         });
                     } 
-                    // 空枠、または保留・取消申請のみの場合（追加予約可能）
                     else {
                         cell.classList.add('available');
 
-                        // 重複している追加希望などを視覚的に薄く表示しておく
                         cellRes.filter(r => r.rejected !== true).forEach(res => {
                             const tag = document.createElement('div');
                             tag.className = 'faint-band-tag';
@@ -472,10 +450,10 @@
                         period: slot.period,
                         bandName: bandName,
                         notes: notes,
-                        confirmed: false,       // ★保留中（希望提出）
+                        confirmed: false,       
                         cancelRequested: false,
-                        isAdditional: true,     // ★追加予約フラグ
-                        rejected: false,        // ★新ステータス
+                        isAdditional: true,     
+                        rejected: false,        
                         deleted: false,         
                         createdAt: new Date().toISOString()
                     });
