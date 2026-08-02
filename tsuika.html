@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>追加予約 - 部室予約システム</title>
     <style>
-        /* 画面全体の横揺れを防ぐ */
+        /* 画面全体の横揺れを防ぎ、要素の幅計算を統一する */
         html, body {
-            overflow-x: auto;
-            min-width: 0;
+            overflow-x: hidden; /* ★変更: 全体の横揺れを完全に防ぐ */
+            width: 100%;
         }
-
-/* 要素の幅の計算をズレさせないおまじない */
         * {
             box-sizing: border-box;
         }
+
         :root {
             --primary-color: #4A90E2;
             --primary-hover: #357abd;
@@ -47,6 +46,7 @@
             display: flex;
             gap: 20px;
             align-items: flex-start;
+            width: 100%; /* ★追加: 確実な幅指定 */
         }
 
         .calendar-section {
@@ -56,6 +56,7 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow-x: auto; 
+            min-width: 0; /* ★追加: これが無いとflexの中で表が親を押し広げてしまう */
         }
         .grid {
             display: grid;
@@ -88,7 +89,6 @@
             display: flex;
             flex-direction: column;
             gap: 3px;
-            box-sizing: border-box;
         }
         .cell.available:hover {
             background-color: #e8f5e9;
@@ -157,7 +157,6 @@
             padding: 8px;
             border: 1px solid var(--border-color);
             border-radius: 4px;
-            box-sizing: border-box;
         }
         .form-group textarea {
             resize: vertical;
@@ -203,7 +202,7 @@
             .calendar-section, .form-section { width: 100%; flex: none; }
             .form-section { position: static; }
             .grid {
-                min-width: 700px;
+                min-width: 700px; /* ★ここで罫線切れを防いでいます */
             }
         }
     </style>
