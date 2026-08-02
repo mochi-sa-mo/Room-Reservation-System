@@ -43,7 +43,6 @@
         .header-actions {
             display: flex;
             align-items: center;
-            gap: 15px; /* ボタンとメニューの隙間 */
         }
 
         .hamburger {
@@ -53,9 +52,8 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            z-index: 1010; /* メニューより上に配置 */
+            z-index: 1010; 
             position: relative;
-            margin-left: 10px;
         }
         .hamburger span {
             display: block;
@@ -80,7 +78,7 @@
         .side-menu {
             position: fixed;
             top: 0;
-            right: -250px; /* 初期状態は画面外 */
+            right: -250px; 
             width: 250px;
             height: 100vh;
             background-color: #fff;
@@ -386,11 +384,6 @@
             .grid {
                 min-width: 700px;
             }
-            
-            .header-actions .btn {
-                padding: 6px 10px;
-                font-size: 0.8em;
-            }
         }
     </style>
 </head>
@@ -399,11 +392,7 @@
     <header>
         <h1>部室予約システム</h1>
         <div class="header-actions">
-            <!-- 順番：今週の追加予約(緑) → 次週の予約(青) → ハンバーガー -->
-            <button class="btn btn-success" onclick="location.href='tsuika.html'">今週の追加予約</button>
-            <button class="btn" onclick="location.href='yoyaku.html'">次週の予約</button>
-            
-            <!-- ハンバーガーアイコン -->
+            <!-- ハンバーガーアイコンのみにスッキリさせました -->
             <div class="hamburger" id="hamburger-btn">
                 <span></span>
                 <span></span>
@@ -415,9 +404,14 @@
     <!-- ハンバーガー展開時のメニューと背景 -->
     <nav class="side-menu" id="side-menu">
         <ul>
-            <li><a href="javascript:void(0)">フォーム</a></li>
-            <li><a href="javascript:void(0)">えくせる</a></li>
-            <li><a href="javascript:void(0)" id="btn-logout" style="color: #d0021b;">ログアウト</a></li>
+            <!-- ここに予約系ボタンの機能をリンクとして移動しました -->
+            <li><a href="tsuika.html" style="color: #4caf50;">➕ 今週の追加予約</a></li>
+            <li><a href="yoyaku.html" style="color: #4A90E2;">📅 次週の予約</a></li>
+            
+            <!-- 追加されたメニュー項目 -->
+            <li><a href="javascript:void(0)">📝 フォーム</a></li>
+            <li><a href="javascript:void(0)">📥 えくせる</a></li>
+            <li><a href="javascript:void(0)" id="btn-logout" style="color: #d0021b;">🚪 ログアウト</a></li>
         </ul>
     </nav>
     <div class="menu-overlay" id="menu-overlay"></div>
