@@ -428,6 +428,42 @@
             font-size: 1.1em;
         }
 
+        /* 📸 画像ダウンロード時(capture-mode)のエクセル風デザインの追加分 */
+        .capture-mode {
+            font-family: 'Meiryo', 'Yu Gothic', sans-serif !important;
+        }
+        .capture-mode #capture-title {
+            display: block !important;
+            background-color: #d9e1f2 !important; /* エクセル風の薄い青 */
+            border: 2px solid #000 !important;
+            border-bottom: none !important;
+            margin: 0 !important;
+            padding: 8px !important;
+            font-size: 26px !important;
+            font-weight: bold !important;
+            text-align: center !important;
+        }
+        .capture-mode .schedule-container {
+            padding: 0 !important; 
+        }
+        .capture-mode .grid {
+            background-color: #000 !important;
+            border: 2px solid #000 !important;
+            gap: 1px !important; /* 内側の罫線 */
+        }
+        .capture-mode .cell, 
+        .capture-mode .header-cell, 
+        .capture-mode .period-cell {
+            background-color: #fff !important;
+            color: #000 !important;
+        }
+        .capture-mode .header-cell {
+            background-color: #d9e1f2 !important;
+        }
+        .capture-mode .header-cell:first-child {
+            background-color: #fff !important;
+        }
+
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: #fff; padding: 20px; border-radius: 8px; width: 450px; max-height: 90vh; overflow-y: auto; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 15px; }
@@ -528,6 +564,18 @@
 
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
+        
+        // ★追加：左の列に表示する詳細データ
+        const periodDetails = [
+            { main: '1', sub: '限', time: '(9:00<br>～10:30)' },
+            { main: '2', sub: '限', time: '(10:45<br>～12:15)' },
+            { main: '昼', sub: '休み', time: '(12:15<br>～13:15)' },
+            { main: '3', sub: '限', time: '(13:15<br>～14:45)' },
+            { main: '4', sub: '限', time: '(15:00<br>～16:30)' },
+            { main: '5', sub: '限', time: '(16:45<br>～18:15)' },
+            { main: '放', sub: '課後<br><span style="font-size:0.8em">1部</span>', time: '(18:15<br>～19:45)' },
+            { main: '放', sub: '課後<br><span style="font-size:0.8em">2部</span>', time: '(19:45<br>～21:15)' }
+        ];
         
         let dbAnnouncements = [];
         let dbReservations = [];
@@ -643,7 +691,6 @@
                 date: document.getElementById(`${prefix}-date`).value.trim(),
                 expire: expire,
                 deleted: false,
-                // ★追加：ここで作成日時をシステムに記録させます
                 createdAt: new Date().toISOString()
             };
 
@@ -824,19 +871,35 @@
             const activeDates = getWeekDates(currentWeekOffset);
             const todayStr = getTodayStr();
 
+            // ★変更：日付を取得して「29(月)」のような形式にする
             days.forEach((day, dIndex) => {
                 const dayCell = document.createElement('div'); dayCell.className = 'header-cell'; 
                 if (activeDates[dIndex] === todayStr) {
                     dayCell.classList.add('today-col');
                 }
-                dayCell.innerHTML = `<div>${day}</div>`;
+                
+                const dateObj = new Date(activeDates[dIndex]);
+                const dateNum = dateObj.getDate();
+                dayCell.innerHTML = `<div style="font-weight:bold; font-size:1.1em;">${dateNum}(${day})</div>`;
+                
                 const colBtn = document.createElement('button'); colBtn.className = 'btn-col-block'; colBtn.textContent = '一括';
                 colBtn.onclick = () => toggleColumnBlock(dIndex);
                 dayCell.appendChild(colBtn); grid.appendChild(dayCell);
             });
 
             periods.forEach((period, pIndex) => {
-                const periodCell = document.createElement('div'); periodCell.className = 'period-cell'; periodCell.textContent = period; grid.appendChild(periodCell);
+                const periodCell = document.createElement('div'); periodCell.className = 'period-cell'; 
+                
+                // ★変更：エクセル風の数字デザインと時間表記を流し込む
+                const pd = periodDetails[pIndex];
+                periodCell.innerHTML = `
+                    <div style="display:flex; align-items:flex-end; justify-content:center;">
+                        <span style="font-family:'Arial Black', Impact, sans-serif; font-size:1.6em; font-style:italic; line-height:0.9;">${pd.main}</span>
+                        <span style="font-size:0.8em; font-weight:bold; margin-bottom:2px;">${pd.sub}</span>
+                    </div>
+                    <div style="font-size:0.75em; line-height:1.2; margin-top:4px;">${pd.time}</div>
+                `;
+                grid.appendChild(periodCell);
 
                 days.forEach((day, dIndex) => {
                     const cell = document.createElement('div'); cell.className = 'cell';
@@ -985,14 +1048,24 @@
         function downloadTimetableImage() { 
             const captureArea = document.getElementById('capture-area'); 
             const captureTitle = document.getElementById('capture-title'); 
+            
+            // ★変更：画像生成時にタイトルを「部室予約表(M/D〜M/D)」に動的に書き換える
+            const activeDates = getWeekDates(currentWeekOffset);
+            const start = new Date(activeDates[0]);
+            const end = new Date(activeDates[6]);
+            captureTitle.textContent = `部室予約表(${start.getMonth()+1}/${start.getDate()}～${end.getMonth()+1}/${end.getDate()})`;
+
             captureArea.classList.add('capture-mode'); 
             captureTitle.style.display = 'block'; 
+            
             html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => { 
                 const link = document.createElement('a'); 
                 const offsetName = currentWeekOffset === 0 ? '今週分' : '次週分';
                 link.download = `部室確定時間割_${offsetName}.png`; 
                 link.href = canvas.toDataURL('image/png'); 
                 link.click(); 
+                
+                // 元の見た目に戻す
                 captureArea.classList.remove('capture-mode'); 
                 captureTitle.style.display = 'none'; 
             }).catch(err => { 
