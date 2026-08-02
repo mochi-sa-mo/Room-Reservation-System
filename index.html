@@ -38,6 +38,95 @@
             padding-bottom: 10px;
             border-bottom: 2px solid var(--border-color);
         }
+
+        /* --- ハンバーガーメニュー用追加CSS --- */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* ボタンとメニューの隙間 */
+        }
+
+        .hamburger {
+            width: 25px;
+            height: 18px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 1010; /* メニューより上に配置 */
+            position: relative;
+            margin-left: 10px;
+        }
+        .hamburger span {
+            display: block;
+            height: 3px;
+            width: 100%;
+            background-color: #333;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+        }
+        /* 開いた時の×印アニメーション */
+        .hamburger.open span:nth-child(1) {
+            transform: translateY(7.5px) rotate(45deg);
+        }
+        .hamburger.open span:nth-child(2) {
+            opacity: 0;
+        }
+        .hamburger.open span:nth-child(3) {
+            transform: translateY(-7.5px) rotate(-45deg);
+        }
+
+        /* スライドしてくるサイドメニュー */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            right: -250px; /* 初期状態は画面外 */
+            width: 250px;
+            height: 100vh;
+            background-color: #fff;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transition: right 0.3s ease;
+            z-index: 1005;
+            padding-top: 70px;
+        }
+        .side-menu.open {
+            right: 0;
+        }
+        .side-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .side-menu li {
+            border-bottom: 1px solid #eee;
+        }
+        .side-menu a {
+            display: block;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .side-menu a:hover {
+            background-color: #f5f7fa;
+        }
+
+        /* メニュー開いた時の背景の暗転 */
+        .menu-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .menu-overlay.open {
+            display: block;
+        }
+        /* --------------------------------- */
         
         .announcements {
             display: flex;
@@ -297,6 +386,11 @@
             .grid {
                 min-width: 700px;
             }
+            
+            .header-actions .btn {
+                padding: 6px 10px;
+                font-size: 0.8em;
+            }
         }
     </style>
 </head>
@@ -304,13 +398,29 @@
 
     <header>
         <h1>部室予約システム</h1>
-        <div>
-            <span>現在のロール: <strong id="current-role">ユーザ</strong></span>
-            <button class="btn btn-success" onclick="location.href='tsuika.html'" style="margin-left: 10px;">今週の追加予約</button>
-            <button class="btn" onclick="location.href='yoyaku.html'" style="margin-left: 10px;">次週の予約</button>
-            <button class="btn btn-danger" id="btn-logout" style="margin-left: 10px;">ログアウト</button>
+        <div class="header-actions">
+            <!-- 順番：今週の追加予約(緑) → 次週の予約(青) → ハンバーガー -->
+            <button class="btn btn-success" onclick="location.href='tsuika.html'">今週の追加予約</button>
+            <button class="btn" onclick="location.href='yoyaku.html'">次週の予約</button>
+            
+            <!-- ハンバーガーアイコン -->
+            <div class="hamburger" id="hamburger-btn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
         </div>
     </header>
+
+    <!-- ハンバーガー展開時のメニューと背景 -->
+    <nav class="side-menu" id="side-menu">
+        <ul>
+            <li><a href="javascript:void(0)">フォーム</a></li>
+            <li><a href="javascript:void(0)">えくせる</a></li>
+            <li><a href="javascript:void(0)" id="btn-logout" style="color: #d0021b;">ログアウト</a></li>
+        </ul>
+    </nav>
+    <div class="menu-overlay" id="menu-overlay"></div>
 
     <div class="announcements">
         <div class="announcement-box">
@@ -374,19 +484,26 @@
         }
 
         window.onload = function() {
-            if (role) {
-                document.getElementById('current-role').textContent = 
-                    role === 'admin' ? '調整者' : (role === 'log' ? '閲覧者' : 'ユーザ');
-            }
-            
+            // イベントリスナーの割り当て
             document.getElementById('btn-logout').onclick = confirmLogout;
             document.getElementById('btn-prev').onclick = () => changeWeek(-1);
             document.getElementById('btn-next').onclick = () => changeWeek(1);
             document.getElementById('btn-close-modal').onclick = closeModal;
 
+            // ハンバーガーメニューの開閉処理
+            document.getElementById('hamburger-btn').onclick = toggleMenu;
+            document.getElementById('menu-overlay').onclick = toggleMenu;
+
             updateWeekButtons(); 
             startRealtimeSync(); 
         };
+
+        // ハンバーガーメニューの開閉関数
+        function toggleMenu() {
+            document.getElementById('hamburger-btn').classList.toggle('open');
+            document.getElementById('side-menu').classList.toggle('open');
+            document.getElementById('menu-overlay').classList.toggle('open');
+        }
 
         function confirmLogout() {
             if (confirm('ログアウトしますか？')) {
@@ -454,7 +571,6 @@
                     const badgeContainer = document.createElement('div');
                     badgeContainer.className = 'badge-container';
 
-                    // --- 1. NEWラベルの判定（投稿から2日以内） ---
                     if (item.createdAt) {
                         const createdDate = item.createdAt.toDate ? item.createdAt.toDate() : new Date(item.createdAt);
                         const createdDay = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
@@ -469,16 +585,13 @@
                         }
                     }
 
-                    // --- ★ 2. 残り日数ラベルの判定（dateフィールドを基準に変更） ---
                     if (item.date) {
                         const targetDate = new Date(item.date);
                         
-                        // 入力された文字が正しく日付として解釈できる場合のみ計算する
                         if (!isNaN(targetDate.getTime())) {
                             const targetDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
                             const diffDays = Math.ceil((targetDay - today) / (1000 * 60 * 60 * 24));
                             
-                            // 7日以内の場合にラベルを表示（イベント・締め切り両対応）
                             if (diffDays >= 0 && diffDays <= 7) {
                                 const countdownBadge = document.createElement('span');
                                 countdownBadge.className = 'badge badge-deadline';
