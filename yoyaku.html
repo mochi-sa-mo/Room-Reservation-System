@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>予約入力 - 部室予約システム</title>
     <style>
+        /* 画面全体の横揺れを防ぐ */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        * {
+            box-sizing: border-box;
+        }
+
         :root {
             --primary-color: #4A90E2;
             --primary-hover: #357abd;
@@ -35,6 +44,7 @@
             display: flex;
             gap: 20px;
             align-items: flex-start;
+            width: 100%;
         }
 
         .calendar-section {
@@ -44,14 +54,34 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow-x: auto; 
+            min-width: 0;
         }
+        
+        /* 表の上の説明文などを1行で表示し、はみ出た部分はスクロールさせる */
+        .calendar-section p, 
+        .calendar-section span,
+        .calendar-section h2 {
+            white-space: nowrap;
+        }
+
+        /* WebKit系(iPhone/Safari)で右端の余白が消えるバグを防ぐおまじない */
+        .calendar-section::after {
+            content: "";
+            display: block;
+            width: 1px;
+            height: 1px;
+            clear: both;
+            padding-right: 15px;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 60px repeat(7, minmax(95px, 1fr));
             gap: 1px;
             background-color: var(--border-color);
             border: 1px solid var(--border-color);
-            width: 100%; /* 横幅いっぱいに広げる */
+            width: 100%; 
+            min-width: max-content; /* 罫線切れを防ぐ */
         }
         .header-cell, .period-cell {
             background-color: #eee;
@@ -95,7 +125,7 @@
             align-items: center;
             justify-content: center;
             text-align: center;
-            word-break: break-word; /* 文字が枠に収まらない場合に折り返す */
+            word-break: break-word; 
         }
         .cell.admin-disabled:hover {
             background-color: var(--disabled-color);
@@ -183,20 +213,19 @@
         .btn:hover { background-color: var(--primary-hover); }
         .btn-back { background-color: #999; }
         .btn-back:hover { background-color: #888; }
-        .btn-danger { background-color: #d0021b; }
-        .btn-danger:hover { background-color: #a00215; }
         .btn-submit { width: 100%; padding: 10px; font-size: 1em; margin-top: 5px; }
 
         @media (max-width: 768px) {
             body { padding: 10px; }
-            header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            header div { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+            /* スマホでもヘッダーを1行で表示 */
+            header { 
+                flex-direction: row; 
+                justify-content: space-between; 
+                align-items: center; 
+            }
             .main-container { flex-direction: column; gap: 15px; }
             .calendar-section, .form-section { width: 100%; flex: none; }
             .form-section { position: static; }
-            .grid {
-                min-width: 700px; /* スマホ画面では強制的に最低幅を持たせ、親要素の overflow-x: auto でスクロールさせる */
-            }
         }
     </style>
 </head>
@@ -205,11 +234,7 @@
     <header>
         <h1>部室予約希望 入力 (次週分)</h1>
         <div>
-            <span>現在のロール: <strong id="current-role">ユーザ</strong></span>
-            <div>
-                <button class="btn btn-back" id="btn-back-top">トップに戻る</button>
-                <button class="btn btn-danger" id="btn-logout" style="margin-left: 5px;">ログアウト</button>
-            </div>
+            <button class="btn btn-back" id="btn-back-top">トップに戻る</button>
         </div>
     </header>
 
@@ -257,10 +282,8 @@
         let dbConfirmedReservations = [];
         let dbDisabledSlots = [];
 
-        // --- 来週の日付を計算する関数 ---
         function getNextWeekDates() {
             const now = new Date();
-            // const now = new Date("2026-07-14T10:00:00"); // デバック
             const nextSunday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay() + 7);
             const dates = [];
             for (let i = 0; i < 7; i++) {
@@ -270,28 +293,14 @@
             return dates;
         }
 
-        const nextWeekDates = getNextWeekDates(); // yoyaku.html は常に「来週」を扱う
-        // --------------------------------
+        const nextWeekDates = getNextWeekDates(); 
 
         window.onload = function() {
-            if (role) {
-                document.getElementById('current-role').textContent = 
-                    role === 'admin' ? '調整者' : (role === 'log' ? '閲覧者' : 'ユーザ');
-            }
-
             document.getElementById('btn-back-top').onclick = () => window.location.href = 'index.html';
-            document.getElementById('btn-logout').onclick = confirmLogout;
             document.getElementById('btn-submit-req').onclick = submitReservationRequest;
 
             startRealtimeSync();
         };
-
-        function confirmLogout() {
-            if (confirm('ログアウトしますか？')) {
-                localStorage.removeItem('userRole');
-                window.location.href = 'login.html';
-            }
-        }
 
         function startRealtimeSync() {
             onSnapshot(collection(db, "disabledSlots"), (snapshot) => {
@@ -306,7 +315,6 @@
                 dbConfirmedReservations = [];
                 snapshot.forEach((doc) => {
                     const data = doc.data();
-                    // ★フィルタリング：絶対日付で「来週の日付リスト」に含まれているデータのみ取得
                     if (nextWeekDates.includes(data.date) && data.deleted !== true) {
                         dbConfirmedReservations.push(data);
                     }
@@ -323,7 +331,6 @@
             emptyCell.className = 'header-cell';
             grid.appendChild(emptyCell);
 
-            // 日付は出さず、レイアウト通り曜日テキストのみ
             days.forEach(day => {
                 const dayCell = document.createElement('div');
                 dayCell.className = 'header-cell';
@@ -348,7 +355,6 @@
                         cell.classList.add('admin-disabled');
                         cell.textContent = '予約不可';
                     } else {
-                        // ★日付での照合に変更
                         const targetDate = nextWeekDates[dIndex];
                         const cellRes = dbConfirmedReservations.filter(r => r.date === targetDate && r.period === pIndex);
                         
@@ -420,16 +426,15 @@
 
             try {
                 const promises = selectedSlots.map(slot => {
-                    // ★修正ポイント：weekの数値をやめ、絶対的な日付文字列（YYYY-MM-DD）を保存する
                     return addDoc(collection(db, "reservations"), {
-                        date: nextWeekDates[slot.day], // 例: "2026-07-12"
+                        date: nextWeekDates[slot.day], 
                         day: slot.day,
                         period: slot.period,
                         bandName: bandName,
                         notes: notes,
                         confirmed: false,       
                         cancelRequested: false,
-                        isAdditional: false,    // 通常予約なのでfalse
+                        isAdditional: false,    
                         deleted: false,         
                         createdAt: new Date().toISOString()
                     });
