@@ -7,7 +7,7 @@
     <style>
         /* 画面全体の横揺れを防ぎ、要素の幅計算を統一する */
         html, body {
-            overflow-x: hidden; /* ★変更: 全体の横揺れを完全に防ぐ */
+            overflow-x: hidden;
             width: 100%;
         }
         * {
@@ -46,7 +46,7 @@
             display: flex;
             gap: 20px;
             align-items: flex-start;
-            width: 100%; /* ★追加: 確実な幅指定 */
+            width: 100%;
         }
 
         .calendar-section {
@@ -56,8 +56,26 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow-x: auto; 
-            min-width: 0; /* ★追加: これが無いとflexの中で表が親を押し広げてしまう */
+            min-width: 0;
         }
+
+        /* ★追加: 表の上の説明文などを1行で表示し、はみ出た部分はスクロールさせる */
+        .calendar-section p, 
+        .calendar-section span,
+        .calendar-section .instruction {
+            white-space: nowrap;
+        }
+
+        /* ★追加: WebKit系(iPhone/Safari)で右端の余白が消えるバグを防ぐおまじない */
+        .calendar-section::after {
+            content: "";
+            display: block;
+            width: 1px;
+            height: 1px;
+            clear: both;
+            padding-right: 15px;
+        }
+
         .grid {
             display: grid;
             grid-template-columns: 60px repeat(7, minmax(95px, 1fr));
@@ -65,6 +83,8 @@
             background-color: var(--border-color);
             border: 1px solid var(--border-color);
             width: 100%;
+            /* ★変更: 罫線切れを防ぐため、常に中身の最大幅に合わせて枠を描画する */
+            min-width: max-content; 
         }
         .header-cell, .period-cell {
             background-color: #eee;
@@ -201,9 +221,6 @@
             .main-container { flex-direction: column; gap: 15px; }
             .calendar-section, .form-section { width: 100%; flex: none; }
             .form-section { position: static; }
-            .grid {
-                min-width: 700px; /* ★ここで罫線切れを防いでいます */
-            }
         }
     </style>
 </head>
