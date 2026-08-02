@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>追加予約 - 部室予約システム</title>
     <style>
+        /* 画面全体の横揺れを防ぐ */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+
+/* 要素の幅の計算をズレさせないおまじない */
+        * {
+            box-sizing: border-box;
+        }
         :root {
             --primary-color: #4A90E2;
             --primary-hover: #357abd;
