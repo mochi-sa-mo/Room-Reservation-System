@@ -410,22 +410,21 @@
             box-sizing: border-box;
         }
 
-        /* 📸 画像ダウンロード時(capture-mode)の完全エクセル風レイアウト再構築 */
+        /* 📸 画像ダウンロード時(capture-mode)のエクセル風レイアウト */
         .capture-mode {
             font-family: 'Meiryo', 'Yu Gothic', sans-serif !important;
         }
         
-        /* 全体を囲う共通コンテナを作成し、ここだけに外枠を付ける */
         .capture-mode #capture-inner {
             border: 2px solid #000 !important;
-            background-color: #000 !important; /* 隙間(gap)を黒線として見せる */
+            background-color: #000 !important; 
         }
         
         .capture-mode #capture-title {
             display: block !important;
-            background-color: #d9e1f2 !important; /* エクセル風の薄い青 */
+            background-color: #d9e1f2 !important; 
             border: none !important;
-            border-bottom: 1px solid #000 !important; /* タイトルと表の間の線 */
+            border-bottom: 1px solid #000 !important; 
             margin: 0 !important;
             padding: 8px !important;
             font-size: 26px !important;
@@ -439,8 +438,8 @@
         }
         
         .capture-mode .grid {
-            border: none !important; /* 個別の枠線は削除 */
-            gap: 1px !important;     /* 内側の罫線(1pxの黒背景) */
+            border: none !important; 
+            gap: 1px !important;     
             background-color: #000 !important;
         }
         
@@ -455,10 +454,9 @@
             background-color: #d9e1f2 !important;
         }
         .capture-mode .header-cell:first-child {
-            background-color: #fff !important; /* 左上だけ白 */
+            background-color: #fff !important; 
         }
 
-        /* セルの中央揃え設定 */
         .capture-mode .cell {
             display: flex !important;
             align-items: center !important;
@@ -472,19 +470,18 @@
             height: 100% !important;
         }
 
-        /* ★バンド名を大きく、太く、中央揃えで折り返し表示する設定 */
         .capture-mode .tag-title {
             display: block !important;
             width: 100% !important;
         }
         .capture-mode .tag-title > span:first-child {
-            white-space: normal !important; /* 折り返しを許可 */
+            white-space: normal !important; 
             word-break: break-all !important;
             overflow: visible !important;
             display: block !important;
-            text-align: center !important; /* 中央揃え */
-            font-size: 1.5em !important;   /* 大きく */
-            font-weight: 900 !important;   /* 太く */
+            text-align: center !important; 
+            font-size: 1.5em !important;   
+            font-weight: 900 !important;   
             line-height: 1.2 !important;
             color: #000 !important;
         }
@@ -565,7 +562,6 @@
                 ※各曜日の下部にある「一括」ボタンを押すと、その曜日の全コマを一括してブロック／解除できます。
             </p>
             <div id="capture-area">
-                <!-- ★変更：枠線を綺麗に出すための新コンテナ (#capture-inner) -->
                 <div id="capture-inner">
                     <h2 id="capture-title" style="margin-top:0; text-align:center; display:none;">部室確定時間割 (次週分)</h2>
                     <div class="schedule-container"><div class="grid" id="admin-grid"></div></div>
@@ -574,7 +570,7 @@
         </div>
     </div>
 
-    <!-- ★編集用モーダルの拡張 -->
+    <!-- ★編集用モーダル -->
     <div class="modal" id="edit-modal">
         <div class="modal-content">
             <h3 style="margin-top:0;">登録内容の編集</h3>
@@ -586,6 +582,17 @@
         </div>
     </div>
 
+    <!-- ★追加：画像長押し保存用モーダル (iOS対応) -->
+    <div class="modal" id="image-modal">
+        <div class="modal-content" style="text-align:center; width: auto; max-width: 95%;">
+            <h3 style="margin-top:0; font-size:1.1em;">画像を長押しして「写真に追加」や「保存」を選んでください</h3>
+            <img id="generated-image" style="max-width: 100%; border: 1px solid #ccc; margin-bottom: 15px;" />
+            <div>
+                <button class="btn" style="background:#999;" onclick="document.getElementById('image-modal').style.display='none';">閉じる</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         import { db } from "./firebase.js";
         import { collection, onSnapshot, addDoc, doc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
@@ -593,7 +600,6 @@
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
         
-        // ★修正：改行などをクリーンにし、CSS側で制御するように調整
         const periodDetails = [
             { main: '1', sub: '限', time: '(9:00<br>～10:30)' },
             { main: '2', sub: '限', time: '(10:45<br>～12:15)' },
@@ -917,7 +923,6 @@
             periods.forEach((period, pIndex) => {
                 const periodCell = document.createElement('div'); periodCell.className = 'period-cell'; 
                 
-                // ★修正：改行・ラップバグを防ぐため white-space:nowrap を使い、フォントサイズや位置を完璧にエクセルに寄せる
                 const pd = periodDetails[pIndex];
                 periodCell.innerHTML = `
                     <div style="display:flex; align-items:flex-end; justify-content:center; white-space:nowrap; margin-bottom:2px;">
@@ -1072,6 +1077,7 @@
             });
         }
 
+        // ★修正：iOS判定を加えてダウンロード方式を分ける
         function downloadTimetableImage() { 
             const captureArea = document.getElementById('capture-area'); 
             const captureTitle = document.getElementById('capture-title'); 
@@ -1085,15 +1091,28 @@
             captureTitle.style.display = 'block'; 
             
             html2canvas(captureArea, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => { 
-                const link = document.createElement('a'); 
-                const offsetName = currentWeekOffset === 0 ? '今週分' : '次週分';
-                link.download = `部室確定時間割_${offsetName}.png`; 
-                link.href = canvas.toDataURL('image/png'); 
-                link.click(); 
                 
-                // 元の見た目に戻す
+                // 画像生成が終わったので元の見た目に戻す
                 captureArea.classList.remove('capture-mode'); 
                 captureTitle.style.display = 'none'; 
+
+                const dataUrl = canvas.toDataURL('image/png');
+                
+                // iPhone/iPad (iOS) の判定
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+                if (isIOS) {
+                    // iOSの場合は直接ダウンロードが弾かれるため、画面に表示して長押し保存してもらう
+                    document.getElementById('generated-image').src = dataUrl;
+                    document.getElementById('image-modal').style.display = 'flex';
+                } else {
+                    // PCやAndroidの場合はそのままダウンロード
+                    const link = document.createElement('a'); 
+                    const offsetName = currentWeekOffset === 0 ? '今週分' : '次週分';
+                    link.download = `部室確定時間割_${offsetName}.png`; 
+                    link.href = dataUrl;
+                    link.click(); 
+                }
             }).catch(err => { 
                 console.error(err); 
                 captureArea.classList.remove('capture-mode'); 
