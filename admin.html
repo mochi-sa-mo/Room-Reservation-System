@@ -409,59 +409,84 @@
             width: 100%;
             box-sizing: border-box;
         }
-        .capture-mode .tag-title {
-            font-weight: 900; 
-            color: #333 !important; 
-            white-space: normal !important; 
-            word-break: break-all !important; 
-            font-size: 1.2em; 
-            line-height: 1.1; 
-            text-align: center; 
-        }
-        
-        .capture-mode .cell {
-            align-items: center;
-            justify-content: center;
-        }
-        .capture-mode .header-cell, 
-        .capture-mode .period-cell {
-            font-size: 1.1em;
-        }
 
-        /* 📸 画像ダウンロード時(capture-mode)のエクセル風デザインの追加分 */
+        /* 📸 画像ダウンロード時(capture-mode)の完全エクセル風レイアウト再構築 */
         .capture-mode {
             font-family: 'Meiryo', 'Yu Gothic', sans-serif !important;
         }
+        
+        /* 全体を囲う共通コンテナを作成し、ここだけに外枠を付ける */
+        .capture-mode #capture-inner {
+            border: 2px solid #000 !important;
+            background-color: #000 !important; /* 隙間(gap)を黒線として見せる */
+        }
+        
         .capture-mode #capture-title {
             display: block !important;
             background-color: #d9e1f2 !important; /* エクセル風の薄い青 */
-            border: 2px solid #000 !important;
-            border-bottom: none !important;
+            border: none !important;
+            border-bottom: 1px solid #000 !important; /* タイトルと表の間の線 */
             margin: 0 !important;
             padding: 8px !important;
             font-size: 26px !important;
             font-weight: bold !important;
             text-align: center !important;
+            box-sizing: border-box !important;
         }
+
         .capture-mode .schedule-container {
             padding: 0 !important; 
         }
+        
         .capture-mode .grid {
+            border: none !important; /* 個別の枠線は削除 */
+            gap: 1px !important;     /* 内側の罫線(1pxの黒背景) */
             background-color: #000 !important;
-            border: 2px solid #000 !important;
-            gap: 1px !important; /* 内側の罫線 */
         }
+        
         .capture-mode .cell, 
         .capture-mode .header-cell, 
         .capture-mode .period-cell {
             background-color: #fff !important;
             color: #000 !important;
         }
+        
         .capture-mode .header-cell {
             background-color: #d9e1f2 !important;
         }
         .capture-mode .header-cell:first-child {
-            background-color: #fff !important;
+            background-color: #fff !important; /* 左上だけ白 */
+        }
+
+        /* セルの中央揃え設定 */
+        .capture-mode .cell {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        
+        .capture-mode .admin-tag {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 100% !important;
+        }
+
+        /* ★バンド名を大きく、太く、中央揃えで折り返し表示する設定 */
+        .capture-mode .tag-title {
+            display: block !important;
+            width: 100% !important;
+        }
+        .capture-mode .tag-title > span:first-child {
+            white-space: normal !important; /* 折り返しを許可 */
+            word-break: break-all !important;
+            overflow: visible !important;
+            display: block !important;
+            text-align: center !important; /* 中央揃え */
+            font-size: 1.5em !important;   /* 大きく */
+            font-weight: 900 !important;   /* 太く */
+            line-height: 1.2 !important;
+            color: #000 !important;
         }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 1000; }
@@ -540,8 +565,11 @@
                 ※各曜日の下部にある「一括」ボタンを押すと、その曜日の全コマを一括してブロック／解除できます。
             </p>
             <div id="capture-area">
-                <h2 id="capture-title" style="margin-top:0; text-align:center; display:none; border-bottom:2px solid #333; padding-bottom:5px;">部室確定時間割 (次週分)</h2>
-                <div class="schedule-container"><div class="grid" id="admin-grid"></div></div>
+                <!-- ★変更：枠線を綺麗に出すための新コンテナ (#capture-inner) -->
+                <div id="capture-inner">
+                    <h2 id="capture-title" style="margin-top:0; text-align:center; display:none;">部室確定時間割 (次週分)</h2>
+                    <div class="schedule-container"><div class="grid" id="admin-grid"></div></div>
+                </div>
             </div>
         </div>
     </div>
@@ -565,7 +593,7 @@
         const days = ['日', '月', '火', '水', '木', '金', '土'];
         const periods = ['1限', '2限', '昼休み', '3限', '4限', '5限', '放課後1', '放課後2'];
         
-        // ★追加：左の列に表示する詳細データ
+        // ★修正：改行などをクリーンにし、CSS側で制御するように調整
         const periodDetails = [
             { main: '1', sub: '限', time: '(9:00<br>～10:30)' },
             { main: '2', sub: '限', time: '(10:45<br>～12:15)' },
@@ -573,8 +601,8 @@
             { main: '3', sub: '限', time: '(13:15<br>～14:45)' },
             { main: '4', sub: '限', time: '(15:00<br>～16:30)' },
             { main: '5', sub: '限', time: '(16:45<br>～18:15)' },
-            { main: '放', sub: '課後<br><span style="font-size:0.8em">1部</span>', time: '(18:15<br>～19:45)' },
-            { main: '放', sub: '課後<br><span style="font-size:0.8em">2部</span>', time: '(19:45<br>～21:15)' }
+            { main: '放', sub: '課後<br>1部', time: '(18:15<br>～19:45)' },
+            { main: '放', sub: '課後<br>2部', time: '(19:45<br>～21:15)' }
         ];
         
         let dbAnnouncements = [];
@@ -871,7 +899,6 @@
             const activeDates = getWeekDates(currentWeekOffset);
             const todayStr = getTodayStr();
 
-            // ★変更：日付を取得して「29(月)」のような形式にする
             days.forEach((day, dIndex) => {
                 const dayCell = document.createElement('div'); dayCell.className = 'header-cell'; 
                 if (activeDates[dIndex] === todayStr) {
@@ -890,14 +917,14 @@
             periods.forEach((period, pIndex) => {
                 const periodCell = document.createElement('div'); periodCell.className = 'period-cell'; 
                 
-                // ★変更：エクセル風の数字デザインと時間表記を流し込む
+                // ★修正：改行・ラップバグを防ぐため white-space:nowrap を使い、フォントサイズや位置を完璧にエクセルに寄せる
                 const pd = periodDetails[pIndex];
                 periodCell.innerHTML = `
-                    <div style="display:flex; align-items:flex-end; justify-content:center;">
-                        <span style="font-family:'Arial Black', Impact, sans-serif; font-size:1.6em; font-style:italic; line-height:0.9;">${pd.main}</span>
-                        <span style="font-size:0.8em; font-weight:bold; margin-bottom:2px;">${pd.sub}</span>
+                    <div style="display:flex; align-items:flex-end; justify-content:center; white-space:nowrap; margin-bottom:2px;">
+                        <span style="font-family:'Arial Black', Impact, sans-serif; font-size:2em; font-style:italic; line-height:0.85; padding-right:2px;">${pd.main}</span>
+                        <span style="font-size:0.9em; font-weight:bold; text-align:left; line-height:1.1; padding-bottom:1px;">${pd.sub}</span>
                     </div>
-                    <div style="font-size:0.75em; line-height:1.2; margin-top:4px;">${pd.time}</div>
+                    <div style="font-size:0.75em; line-height:1.2; font-family:Arial, sans-serif;">${pd.time}</div>
                 `;
                 grid.appendChild(periodCell);
 
@@ -1049,7 +1076,6 @@
             const captureArea = document.getElementById('capture-area'); 
             const captureTitle = document.getElementById('capture-title'); 
             
-            // ★変更：画像生成時にタイトルを「部室予約表(M/D〜M/D)」に動的に書き換える
             const activeDates = getWeekDates(currentWeekOffset);
             const start = new Date(activeDates[0]);
             const end = new Date(activeDates[6]);
