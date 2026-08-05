@@ -232,7 +232,7 @@
 <body>
 
     <header>
-        <h1>部室予約希望 入力 (次週分)</h1>
+        <h1>来週の予約</h1>
         <div>
             <button class="btn btn-back" id="btn-back-top">トップに戻る</button>
         </div>
@@ -451,7 +451,7 @@
                     detail: "一般ユーザーより新規予約希望が送信されました"
                 });
 
-                alert(`【送信完了】\n${bandName} の予約希望を ${selectedSlots.length} 件送信しました。\n日曜日の管理者調整の後に時間割が確定します。`);
+                alert(`【送信完了】\n${bandName} の予約希望を ${selectedSlots.length} 件送信しました。`);
                 
                 selectedSlots = [];
                 window.location.href = 'index.html';
